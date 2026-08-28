@@ -1,0 +1,31 @@
+[package]
+name = "hostile-router-probe"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "Disposable hostile router for routed callback authorization tests"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "hostile_router_probe"
+
+[features]
+default = []
+cpi = ["no-entrypoint"]
+no-entrypoint = []
+no-log-ix-name = []
+idl-build = ["anchor-lang/idl-build"]
+anchor-debug = []
+custom-heap = []
+custom-panic = []
+
+[dependencies]
+anchor-lang.workspace = true
+anchor-spl.workspace = true
+callback-capability-probe = { path = "../callback-capability-probe", features = ["no-entrypoint"] }
+routed-callback-probe-wire = { path = "../../crates/routed-callback-probe-wire" }
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(target_os, values("solana"))'] }

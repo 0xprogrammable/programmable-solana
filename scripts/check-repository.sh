@@ -31,6 +31,8 @@ readonly required_files=(
   "spec/maturity-checkpoint.md"
   "spec/protocol-boundaries.md"
   "spec/repository-boundaries.md"
+  "spec/routed-callback-auth-spike.md"
+  "spec/routed-callback-auth-spike-results.md"
   "spec/runtime-baseline.md"
   "spec/security-properties.md"
   "spec/threat-model.md"

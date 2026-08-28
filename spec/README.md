@@ -19,6 +19,13 @@ public interfaces or compatibility promises.
   production gates.
 - [`engine-generated-settlement-sbf-v0.sha256`](engine-generated-settlement-sbf-v0.sha256)
   pins the exact canonical Ubuntu binaries for that experiment.
+- [`routed-callback-auth-spike.md`](routed-callback-auth-spike.md) defines the
+  private experiment contract for exact routed intent authorization and
+  phase-scoped Core-to-engine callback authentication. It is not a public ABI or
+  deployment plan.
+- [`routed-callback-auth-spike-results.md`](routed-callback-auth-spike-results.md)
+  records the measured local result, callback-shape decision, and unresolved
+  production gates. Canonical Ubuntu reproduction is still pending.
 - [`authority-kernel-spike-results.md`](authority-kernel-spike-results.md)
   records the executable result and its non-production limits.
 - [`authority-kernel-sbf-v0.sha256`](authority-kernel-sbf-v0.sha256) pins the

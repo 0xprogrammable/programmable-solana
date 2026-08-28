@@ -24,12 +24,14 @@ isolation.
 
 ## Status
 
-The protocol is in its design phase. Two disposable experiments are executable
-locally: the original authority kernel and an isolated engine-generated-output
-probe with a bounded opaque capability closure. They test narrow security and
-runtime hypotheses; neither wire format is a public interface or a generic
-settlement-plan design. No program from this repository is deployed or approved
-for production use.
+The protocol is in its design phase. Three disposable experiments are
+executable locally: the original authority kernel, an isolated
+engine-generated-output probe, and an isolated routed-callback-authentication
+probe. The third experiment selects one pre-settlement writable transition over
+a prepare/commit pair for the next private architecture gate. These experiments
+test narrow security and runtime hypotheses; none of their wire formats is a
+public interface or a generic settlement-plan design. No program from this
+repository is deployed or approved for production use.
 
 ## Principles
 
