@@ -1,7 +1,7 @@
 # Routed callback authentication spike
 
-Status: Locally implemented; canonical CI reproduction pending; private
-non-production contract
+Status: Implemented and CI-reproduced experiment; private non-production
+contract
 
 This document authorizes one disposable experiment. It does not accept a public
 engine interface, authorization format, Core account layout, deployment

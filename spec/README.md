@@ -24,10 +24,10 @@ public interfaces or compatibility promises.
   phase-scoped Core-to-engine callback authentication. It is not a public ABI or
   deployment plan.
 - [`routed-callback-auth-spike-results.md`](routed-callback-auth-spike-results.md)
-  records the measured local result, callback-shape decision, and unresolved
-  production gates. Pinned Ubuntu reproduction is still pending.
+  records the measured result, callback-shape decision, exact reproduction
+  evidence, and unresolved production gates.
 - [`routed-callback-auth-sbf-v0.sha256`](routed-callback-auth-sbf-v0.sha256)
-  pins the four Ubuntu binaries discovered by the first successful CI build.
+  pins the four canonical Ubuntu binaries that CI must reproduce.
 - [`authority-kernel-spike-results.md`](authority-kernel-spike-results.md)
   records the executable result and its non-production limits.
 - [`authority-kernel-sbf-v0.sha256`](authority-kernel-sbf-v0.sha256) pins the

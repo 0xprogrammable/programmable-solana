@@ -1,6 +1,7 @@
 # Routed callback authentication spike results
 
-Status: Implemented experiment; pinned Ubuntu reproduction pending
+Status: Implemented and CI-reproduced experiment, not an accepted protocol
+interface
 
 Date: 2026-08-28
 
@@ -34,8 +35,16 @@ frozen by commit `77e944c413c2188cdc59c032f7290ad3e4e82be0`, tree
 [`#7`](https://github.com/0xprogrammable/programmable-solana/pull/7). Ubuntu run
 [`33196359651`](https://github.com/0xprogrammable/programmable-solana/actions/runs/33196359651)
 built that source, printed all four artifact hashes, and passed every repository
-and experiment test. Those hashes are now pinned. A second unchanged program
-build must match the manifest before this record calls them reproduced.
+and experiment test. Commit
+`423e0240d9fc6087c92475c01cc6e7567001b078`, tree
+`0238c3eb7f684bc3af753c31904e8674db6bb9eb`, pins those hashes and changes only
+the evidence records and checksum gate; every program, test, dependency,
+lockfile, and SBF build input remains unchanged. Run
+[`33196862495`](https://github.com/0xprogrammable/programmable-solana/actions/runs/33196862495)
+rebuilt all four programs, matched every pinned checksum, passed the full
+61-test suite, and passed the aggregate protocol gate. That second run is the
+canonical reproduction proof. Later documentation-only clarification leaves
+the reproduced build inputs unchanged.
 
 ## Implemented flow
 
@@ -209,8 +218,8 @@ The first successful Ubuntu 24.04 CI build produced:
 9cabf26d46bfcf4959e3eda7b8a9f648c780efcb8cc5a123055d93d8f79d1028  target/deploy/callback_capability_probe.so
 ```
 
-The manifest records discovery evidence until a later CI run rebuilds the
-unchanged program inputs and passes the exact checksum gate.
+The manifest is now enforced by CI. Ubuntu run `33196862495` rebuilt the
+unchanged program inputs and matched all four entries exactly.
 
 ## Not established
 
