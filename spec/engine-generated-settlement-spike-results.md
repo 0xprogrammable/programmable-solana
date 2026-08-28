@@ -23,11 +23,13 @@ failed the exact-hash gate because the manifest still contained the predecessor
 engine hash. That discovery run did not reach the runtime-test step and is not
 reproduction proof by itself. Follow-up commit
 `d2fa376e74f5b9691fbc97940c71384b94674d8d`, tree
-`4a6efae810d868b40db11da665ac5b6386b853e3`, pins the new hash and this result
-record. Run
+`4a6efae810d868b40db11da665ac5b6386b853e3`, pins the new hash and the initial
+combined-resource record. Run
 [`33187360324`](https://github.com/0xprogrammable/programmable-solana/actions/runs/33187360324)
 rebuilt the unchanged program inputs, matched all three hashes, and passed the
-full 53-test suite. That successful run is the reproduction proof.
+full 53-test suite. That successful run is the reproduction proof. Later commits
+only clarify this record and leave every program, test, and build input
+unchanged.
 
 ## Decision
 
@@ -317,7 +319,15 @@ root:
 ./scripts/check-repository.sh
 cd experiments/engine-generated-settlement
 NO_DNA=1 ./scripts/check.sh
+NO_DNA=1 cargo test -p programmable-generated-settlement-core \
+  --test generated_settlement --locked -- --nocapture
 ```
+
+The resource table records repeated local macOS exact-SBF samples against the
+local hashes below. The canonical Ubuntu CI rebuilds and hash-checks the same
+program inputs and enforces the same packet, account, call-shape, and compute
+ceilings; its default `cargo test` output captures rather than prints successful
+fixture metrics.
 
 The canonical hash check runs only in the pinned Ubuntu CI environment after
 that environment builds the artifacts:
