@@ -27,6 +27,7 @@ tests/
   adversarial/          isolation, authorization, and bypass attempts
 test-programs/           deliberately hostile programs used only by tests
 examples/                minimal integrations, never hidden protocol logic
+experiments/             isolated disposable workspaces, never public interfaces
 deployments/             append-only public release manifests
 scripts/                 deterministic development and verification helpers
 ```
@@ -44,6 +45,24 @@ test-programs/spike-engine/       configurable benign and hostile callee
 
 None of these experiment names or bytes is the accepted `engine-interface` or a
 reference market engine.
+
+## Disposable experiment workspaces
+
+An experiment that must test incompatible program IDs, wire formats, or Cargo
+dependencies may use its own nested workspace under `experiments/<name>/`. Each
+such workspace must have its own lockfile and build output, keep every package
+unpublished, and remain dependency-isolated from the canonical root workspace in
+both directions. Repository checks enforce that boundary from Cargo metadata.
+
+Experiment programs are security-critical evidence but are not supported
+protocol releases, production topology, or public interfaces. Their source may
+be removed once a reviewable result record preserves the conclusion and every
+repository, workflow, and specification reference is removed in the same
+change. The current isolated workspace is:
+
+```text
+experiments/engine-generated-settlement/   disposable generated-output probe
+```
 
 ## Dependency direction
 

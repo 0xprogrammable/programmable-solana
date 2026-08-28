@@ -25,6 +25,7 @@ readonly required_files=(
   "spec/authority-kernel-sbf-v0.sha256"
   "spec/competitive-baseline.md"
   "spec/authority-kernel-spike-results.md"
+  "spec/engine-generated-settlement-spike.md"
   "spec/maturity-checkpoint.md"
   "spec/protocol-boundaries.md"
   "spec/repository-boundaries.md"
@@ -39,6 +40,100 @@ for required_file in "${required_files[@]}"; do
     exit 1
   fi
 done
+
+python3 - <<'PY'
+import json
+from pathlib import Path
+import re
+import subprocess
+import sys
+
+
+repository_root = Path.cwd().resolve()
+experiments_root = (repository_root / "experiments").resolve()
+
+
+def is_within(path, root):
+    try:
+        path.resolve().relative_to(root.resolve())
+        return True
+    except ValueError:
+        return False
+
+
+def cargo_metadata(workspace):
+    result = subprocess.run(
+        ["cargo", "metadata", "--locked", "--no-deps", "--format-version", "1"],
+        cwd=workspace,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    return json.loads(result.stdout)
+
+
+def path_dependencies(package):
+    for dependency in package.get("dependencies", []):
+        dependency_path = dependency.get("path")
+        if dependency_path:
+            yield Path(dependency_path).resolve()
+
+
+root_metadata = cargo_metadata(repository_root)
+for package in root_metadata["packages"]:
+    manifest = Path(package["manifest_path"]).resolve()
+    if is_within(manifest, experiments_root):
+        print(f"Root workspace contains experiment package: {manifest}", file=sys.stderr)
+        sys.exit(1)
+    for dependency in path_dependencies(package):
+        if is_within(dependency, experiments_root):
+            print(
+                f"Root package {package['name']} depends on experiment path: {dependency}",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+
+for manifest in sorted(experiments_root.glob("*/Cargo.toml")):
+    workspace = manifest.parent.resolve()
+    for required_name in ("Cargo.lock", "rust-toolchain.toml"):
+        required_path = workspace / required_name
+        if not required_path.is_file():
+            print(
+                f"Experiment workspace is missing {required_name}: {workspace}",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+    toolchain_text = (workspace / "rust-toolchain.toml").read_text(encoding="utf-8")
+    if not re.search(r'^\s*channel\s*=\s*"\d+\.\d+\.\d+"\s*$', toolchain_text, re.MULTILINE):
+        print(f"Experiment toolchain channel is not an exact release: {workspace}", file=sys.stderr)
+        sys.exit(1)
+    metadata = cargo_metadata(workspace)
+    if Path(metadata["workspace_root"]).resolve() != workspace:
+        print(f"Experiment is not a standalone workspace: {workspace}", file=sys.stderr)
+        sys.exit(1)
+    if not is_within(Path(metadata["target_directory"]), workspace):
+        print(f"Experiment target escapes its workspace: {workspace}", file=sys.stderr)
+        sys.exit(1)
+    for package in metadata["packages"]:
+        package_manifest = Path(package["manifest_path"]).resolve()
+        if not is_within(package_manifest, workspace):
+            print(
+                f"Experiment package escapes {workspace}: {package_manifest}",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+        if package.get("publish") != []:
+            print(f"Experiment package is publishable: {package_manifest}", file=sys.stderr)
+            sys.exit(1)
+        for dependency in path_dependencies(package):
+            if not is_within(dependency, workspace):
+                print(
+                    f"Experiment package {package['name']} has external path dependency: "
+                    f"{dependency}",
+                    file=sys.stderr,
+                )
+                sys.exit(1)
+PY
 
 while IFS= read -r -d '' tracked_file; do
   tracked_name="${tracked_file##*/}"

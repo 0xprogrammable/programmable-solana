@@ -1,7 +1,9 @@
 # Protocol specification
 
-This directory records the public contract of Programmable Solana before that
-contract is encoded in an onchain program.
+This directory records candidate and accepted protocol contracts before they
+are encoded in an onchain program. It also contains explicitly private,
+disposable experiment contracts and their evidence; those records are not
+public interfaces or compatibility promises.
 
 ## Documents
 
@@ -9,6 +11,9 @@ contract is encoded in an onchain program.
   does and does not control.
 - [`engine-boundary-spike.md`](engine-boundary-spike.md) defines the smallest
   experiment that must succeed before a public engine ABI is designed.
+- [`engine-generated-settlement-spike.md`](engine-generated-settlement-spike.md)
+  defines a disposable, private experiment contract for engine-generated
+  settlement. It is not a public engine ABI or compatibility promise.
 - [`authority-kernel-spike-results.md`](authority-kernel-spike-results.md)
   records the executable result and its non-production limits.
 - [`authority-kernel-sbf-v0.sha256`](authority-kernel-sbf-v0.sha256) pins the

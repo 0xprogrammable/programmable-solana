@@ -48,6 +48,16 @@ ELF hashes and are not canonical release evidence. Do not run `anchor init
 --force`, copy generated keypairs into the repository, or use a developer's
 default Solana wallet for the spike.
 
+The isolated engine-generated-settlement experiment has its own workspace and
+lockfile. Run its complete gate from the repository root with:
+
+```sh
+./experiments/engine-generated-settlement/scripts/check.sh
+```
+
+Its Cargo packages and path dependencies must remain wholly inside that nested
+workspace. The root workspace must never depend on experiment code.
+
 ## Commit titles
 
 Write short English titles in the imperative, with one concrete purpose and no
@@ -80,6 +90,7 @@ Changes to the following paths are protocol-critical:
 - `programs/core/`
 - `crates/engine-interface/`
 - `crates/engine-probe-interface/`
+- `experiments/`
 - `deployments/`
 - `.github/workflows/`
 - the security properties and accepted architecture decisions
