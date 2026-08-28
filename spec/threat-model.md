@@ -11,7 +11,7 @@ engine, token, interface, operator, or the Solana network.
 - user assets that have not been authorized for the current instruction;
 - assets held in core-custodied market vaults;
 - canonical market identity, fee configuration, and settlement state;
-- engine-owned state exposed through declared writable capabilities;
+- declared capability boundaries around engine-owned accounts;
 - source, release artifacts, deployment manifests, and authority records; and
 - availability of unrelated markets when one market or engine fails.
 
@@ -21,7 +21,7 @@ engine, token, interface, operator, or the Solana network.
 | --- | --- | --- |
 | User key or wallet | Can authorize transactions for that user | The protocol cannot recover a stolen key; signed instructions still bind exact intent and limits |
 | Frontend or client | Can lie, omit data, or construct a hostile transaction | Holds no protocol authority; settlement remains inside signed asset, recipient, amount, fee, and expiry bounds |
-| RPC provider | Can censor, delay, omit, reorder views, or report stale data | Cannot forge signatures or finalized state; clients can use independent RPCs |
+| RPC provider | Can censor or fabricate account data, signatures, slots, and finality claims returned to a client | Cannot alter canonical finalized state or create a validator signature; critical reads need independent comparison or verifiable ledger evidence |
 | Core program | Controls shared validation and core-custodied settlement | Treated as systemic security-critical code with explicit releases and invariants |
 | Core upgrade authority | Can replace the core and defeat code-level controls | Full trust is disclosed until the authority is constrained or removed |
 | Configuration or pause authority | Can invoke only powers implemented for that role | Scope, controller, and every change are public and separately tested |

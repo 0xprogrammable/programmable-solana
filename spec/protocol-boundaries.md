@@ -22,8 +22,10 @@ The design separates three concerns:
 The core is expected to:
 
 - derive a canonical identity for every market;
-- bind each market to its engine, asset accounts, interface version, and fee
-  configuration;
+- bind each market to its engine, asset-validation policy, interface version, and
+  fee configuration;
+- authenticate the actual asset accounts and capabilities supplied for each
+  settlement;
 - authenticate every account participating in settlement;
 - prevent one market from substituting or writing another market's core-owned
   state or core-custodied vaults;
@@ -74,7 +76,9 @@ Third parties may build those products independently.
 
 Indexers and APIs are replaceable projections of onchain state. Every successful
 core settlement must emit a versioned envelope containing enough common data to
-identify the market, engine, assets, amounts, fees, and ordering checkpoint.
+identify the market, engine, assets, amounts, fees, and market-local sequence or
+checkpoint. Global ordering comes from the Solana ledger position, not a
+protocol-wide writable counter.
 Engine-specific meaning is decoded through optional engine schemas or plugins;
 the generic indexer does not pretend to understand arbitrary engine state.
 

@@ -66,8 +66,10 @@ testing, not claims about code that does not yet exist.
 19. **Current-state discovery** — canonical markets and current protocol state can
     be discovered from versioned program accounts without a privileged index.
 20. **Verifiable event stream** — successful core settlements emit a versioned
-    common envelope with a detectable sequence or checkpoint. Engine-specific
-    semantics remain optional schemas rather than implied core knowledge.
+    common envelope with a detectable market-local sequence or checkpoint.
+    Global ordering uses the Solana ledger position instead of protocol-wide
+    mutable state. Engine-specific semantics remain optional schemas rather than
+    implied core knowledge.
 21. **Archive boundary** — an independent live indexer can follow and verify the
     event stream. Reconstructing already-pruned history requires an archival
     ledger source and is not a protocol-liveness guarantee.
