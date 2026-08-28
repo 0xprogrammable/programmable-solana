@@ -15,7 +15,7 @@ use anchor_lang::{
 use generated_settlement_probe_wire::{
     compute_capability_hash, decode_request, encode_receipt, CapabilityDescriptor, EngineReceipt,
     CORE_EXECUTE_ENGINE_GENERATED_PROBE_DISCRIMINATOR, DISPOSABLE_CORE_PROGRAM_ID,
-    DISPOSABLE_HELPER_PROGRAM_ID, ENGINE_REQUEST_LEN, MAX_OPAQUE_ACCOUNTS,
+    DISPOSABLE_HELPER_PROGRAM_ID, ENGINE_REQUEST_LEN, MAX_OPAQUE_ACCOUNTS, MAX_OPAQUE_PAYLOAD_LEN,
 };
 use solana_instructions_sysvar::{load_current_index_checked, load_instruction_at_checked};
 
@@ -354,12 +354,13 @@ fn maybe_invoke_helper<'info>(
     if payload.first().copied() != Some(HELPER_PAYLOAD_TAG) {
         return Ok(());
     }
-    require_eq!(
-        remaining_accounts.len(),
-        3,
+    require!(
+        (3..=MAX_OPAQUE_CAPABILITIES).contains(&remaining_accounts.len()),
         EngineError::InvalidHelperCapabilityClosure
     );
 
+    // Core has authenticated and hash-bound the full ordered closure. This
+    // engine-specific helper command consumes only its required three-account prefix.
     let helper_program = &remaining_accounts[0];
     let helper_state = &remaining_accounts[1];
     let capability_authority = &remaining_accounts[2];
@@ -424,9 +425,11 @@ fn maybe_invoke_helper<'info>(
 
     let amount = match payload.len() {
         1 => 1,
-        9 => {
+        HELPER_INCREMENT_PAYLOAD_LEN | MAX_OPAQUE_PAYLOAD_LEN => {
+            // The maximum-resource fixture hash-binds the trailing bytes but
+            // deliberately keeps the helper command in the fixed nine-byte prefix.
             let mut encoded = [0_u8; 8];
-            encoded.copy_from_slice(&payload[1..9]);
+            encoded.copy_from_slice(&payload[1..HELPER_INCREMENT_PAYLOAD_LEN]);
             u64::from_le_bytes(encoded)
         }
         _ => return err!(EngineError::InvalidHelperPayload),
@@ -579,7 +582,7 @@ pub enum EngineError {
     InvalidCoreInstruction,
     #[msg("The instructions sysvar could not be introspected")]
     InvalidInstructionsSysvar,
-    #[msg("The helper capability closure is not the exact expected shape")]
+    #[msg("The helper capability closure does not contain the required ordered prefix")]
     InvalidHelperCapabilityClosure,
     #[msg("The helper program capability is invalid")]
     InvalidHelperProgram,

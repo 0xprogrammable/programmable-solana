@@ -6,19 +6,30 @@ Date: 2026-08-28
 
 ## Evidence identity
 
-The implementation and every repository-controlled build input were frozen by commit
-`3136903186350b4e7f1581ae6768c096202c0adc`, tree
+The original experiment and every repository-controlled build input were frozen
+by commit `3136903186350b4e7f1581ae6768c096202c0adc`, tree
 `42100d0c638a9fe1815aba038ce88a4a27022146`, in pull request
-[`#5`](https://github.com/0xprogrammable/programmable-solana/pull/5). The first
-canonical Ubuntu 24.04 build and test run is
+[`#5`](https://github.com/0xprogrammable/programmable-solana/pull/5). Its first
+canonical Ubuntu 24.04 build and test run was
 [`33182452794`](https://github.com/0xprogrammable/programmable-solana/actions/runs/33182452794).
 
-That run discovered the three hashes recorded in
-[`engine-generated-settlement-sbf-v0.sha256`](engine-generated-settlement-sbf-v0.sha256).
-The commit containing this record changes CI from printing those hashes to
-rebuilding the same frozen inputs and checking all three exact values. The
-successful check on that commit, rather than the discovery run alone, is the
-reproduction proof.
+The combined maximum-resource source and test delta is frozen by commit
+`1ede704accad0cbeae58a6446c17e4264514f037`, tree
+`c67f4c64ec26be0e688726de43739bc2b7d892f7`, in pull request
+[`#6`](https://github.com/0xprogrammable/programmable-solana/pull/6). Ubuntu run
+[`33186883797`](https://github.com/0xprogrammable/programmable-solana/actions/runs/33186883797)
+rebuilt those inputs and printed all three artifact hashes, then deliberately
+failed the exact-hash gate because the manifest still contained the predecessor
+engine hash. That discovery run did not reach the runtime-test step and is not
+reproduction proof by itself. Follow-up commit
+`d2fa376e74f5b9691fbc97940c71384b94674d8d`, tree
+`4a6efae810d868b40db11da665ac5b6386b853e3`, pins the new hash and the initial
+combined-resource record. Run
+[`33187360324`](https://github.com/0xprogrammable/programmable-solana/actions/runs/33187360324)
+rebuilt the unchanged program inputs, matched all three hashes, and passed the
+full 53-test suite. That successful run is the reproduction proof. Later commits
+only clarify this record and leave every program, test, and build input
+unchanged.
 
 ## Decision
 
@@ -187,7 +198,7 @@ included in those package counts.
 - golden quote separates the implicit LP fee;
 - zero-fee quote retains no input;
 - LP-fee rounding is explicitly pool-favouring;
-- helper payload encoding is fixed-width and little-endian;
+- helper amount-prefix encoding is fixed-width and little-endian;
 - hostile receipt-mode values remain stable;
 - invalid and unrepresentable quotes fail;
 - maximum-width products remain checked;
@@ -252,8 +263,8 @@ included in those package counts.
 - insufficient user source balance fails before the engine;
 - raw output-vault donation changes neither accounting nor quote;
 - input- and fee-vault donations become neither quote inputs nor liabilities;
-- eight opaque positions and 128 payload bytes pass, while nine and 129 fail
-  before the engine;
+- eight opaque positions and 128 payload bytes jointly execute the reference
+  CPMM and nested helper CPI, while nine and 129 fail before the engine;
 - all 16 fixed-envelope keys are rejected as opaque aliases; and
 - a canonical direct top-level engine invocation is rejected without mutation.
 
@@ -269,21 +280,23 @@ snapshotted.
 | Fixture | Packet | Accounts | Writable | Observed compute | Max depth | Total call frames |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
 | Direct successful settlement | 716 B | 16 | 9 | 59,807–59,838 CU | 2 | 5 |
-| Nested helper CPI | 824 B | 19 | 10 | 69,751 CU | 3 | 6 |
-| 8 opaque accounts + 128-byte payload | 1,109 B | 24 | 9 | 71,258–71,320 CU | 2 | 5 |
+| Nested helper CPI | 824 B | 19 | 10 | 69,751–69,783 CU | 3 | 6 |
+| 8 opaque accounts + 128-byte payload + nested helper CPI | 1,109 B | 24 | 10 | 76,500 CU | 3 | 6 |
 | Rejected direct engine attack | 537 B | 4 | 2 | 4,711 CU | 1 | 1 |
 
 At the maximum tested fixture:
 
 - packet headroom is 123 bytes against the 1,232-byte legacy packet limit;
 - locked-account headroom is 40 against the 64-account baseline;
-- compute headroom is at least 1,328,680 CU against 1,400,000 CU across the
-  recorded samples;
+- compute headroom is 123,500 CU against this fixture's 200,000-CU execution
+  ceiling; the same consumption is 1,323,500 CU below the active 1,400,000-CU
+  transaction maximum, which this one-instruction fixture would need to request
+  explicitly;
 - the engine CPI receives 10 accounts: its fixed prefix plus eight opaque
   positions;
 - the receipt is exactly 57 bytes, leaving 967 bytes against the 1,024-byte
   return-data limit; and
-- the nested helper case reaches depth 3, leaving two call levels against the
+- the maximum fixture reaches depth 3, leaving two call levels against the
   pinned height-5 baseline.
 
 The maximum receipt length and setter were decoded from the engine's runtime log.
@@ -299,15 +312,28 @@ arbitrary future engines.
 
 ## Reproduction and artifact identity
 
-From the repository root:
+For local source, policy, and exact-SBF runtime verification from the repository
+root:
 
 ```sh
 ./scripts/check-repository.sh
 cd experiments/engine-generated-settlement
-cargo fmt --all --check
-./scripts/build-sbf.sh
-sha256sum --check ../../spec/engine-generated-settlement-sbf-v0.sha256
 NO_DNA=1 ./scripts/check.sh
+NO_DNA=1 cargo test -p programmable-generated-settlement-core \
+  --test generated_settlement --locked -- --nocapture
+```
+
+The resource table records repeated local macOS exact-SBF samples against the
+local hashes below. The canonical Ubuntu CI rebuilds and hash-checks the same
+program inputs and enforces the same packet, account, call-shape, and compute
+ceilings; its default `cargo test` output captures rather than prints successful
+fixture metrics.
+
+The canonical hash check runs only in the pinned Ubuntu CI environment after
+that environment builds the artifacts:
+
+```sh
+sha256sum --check ../../spec/engine-generated-settlement-sbf-v0.sha256
 ```
 
 CI pins host Rust 1.96.0, cargo-build-sbf/Agave 3.1.10, SBPFv0, and
@@ -317,14 +343,14 @@ pinned Agave 4.2.1 semantic baseline.
 The canonical Ubuntu 24.04 artifacts are:
 
 - Core: `abaa15b87555aae6fb78f657a667a08ab1709f148c63442c569c71aa1bf776ba`
-- reference engine: `b311ee0058ec4352305fd31ee0ad34eaf8a8d83ead6bce06882ed9fd00857c87`
+- reference engine: `6c42a3e845b1d5ce93fe9fc069d05c96e88841b3110a33125e3cf830bc4d5bfa`
 - opaque helper: `5bbd777c59894b60c533abd50f99bbe3afc24c2784c9b00714e341e99071ee77`
 
 The local macOS runtime artifacts were stable for this test pass but are
 non-canonical and differ from Ubuntu:
 
 - Core: `799ecd1be8ae43678b1f943ce1cc41d76c02fd634956e5e3d91e26b16ff5b6ef`
-- reference engine: `3ba88b7b464a834bb8d6c8007a9a2a51281ea7cad4dfc0a9d2c6dc62fe802bf0`
+- reference engine: `4e2439449f3f25b6d9c542400424b5cfb4474b8fe4d188e189b5de60e093d210`
 - opaque helper: `7de222853bbc764eb4108e8c988b89ca32ae5d05402844e7bb6fd872f11fea65`
 
 Agave 3.1.10's empty legacy syscall list produces known unknown-syscall
