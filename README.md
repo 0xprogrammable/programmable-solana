@@ -1,3 +1,17 @@
+<p align="center">
+  <picture>
+    <source
+      media="(prefers-reduced-motion: reduce)"
+      srcset="./assets/readme/programmable-solana-night-garden-v2.png"
+    />
+    <img
+      src="./assets/readme/programmable-solana-night-garden-v2.gif"
+      alt="The white Solana mark above a vivid night garden while small round stars twinkle in a black sky"
+      width="100%"
+    />
+  </picture>
+</p>
+
 # Programmable Solana
 
 Programmable Solana is an open protocol for programmable liquidity and exchange
