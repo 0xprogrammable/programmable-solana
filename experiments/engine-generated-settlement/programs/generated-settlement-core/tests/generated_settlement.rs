@@ -1265,15 +1265,20 @@ fn input_and_fee_vault_donations_never_become_accounting_or_quote_inputs() {
 }
 
 #[test]
-fn maximum_opaque_closure_and_payload_boundaries_fail_closed() {
+fn maximum_opaque_closure_payload_and_nested_helper_respect_resource_bounds() {
     let mut fixture = Fixture::new();
-    let opaque_accounts = existing_readonly_external_accounts(&mut fixture, MAX_OPAQUE_ACCOUNTS);
+    let helper_increment = 7;
+    let mut opaque_accounts = fixture.opaque_helper_accounts().to_vec();
+    let additional_account_count = MAX_OPAQUE_ACCOUNTS - opaque_accounts.len();
+    opaque_accounts.extend(existing_readonly_external_accounts(
+        &mut fixture,
+        additional_account_count,
+    ));
+    assert_eq!(opaque_accounts.len(), MAX_OPAQUE_ACCOUNTS);
     let opaque_keys: Vec<_> = opaque_accounts.iter().map(|meta| meta.pubkey).collect();
-    let payload = vec![0x7f; MAX_OPAQUE_PAYLOAD_LEN];
-    assert_ne!(
-        payload[0], 1,
-        "the reference engine must not select its helper path"
-    );
+    let mut payload = vec![0x7f; MAX_OPAQUE_PAYLOAD_LEN];
+    let helper_payload = encode_helper_payload(helper_increment);
+    payload[..helper_payload.len()].copy_from_slice(&helper_payload);
     let transaction = fixture.execute_transaction(valid_args(1, payload), &opaque_accounts, &[]);
     let packet_bytes = wincode::serialize(&transaction).unwrap().len();
     let account_count = transaction.message.account_keys.len();
@@ -1282,9 +1287,13 @@ fn maximum_opaque_closure_and_payload_boundaries_fail_closed() {
 
     assert!(packet_bytes < LEGACY_PACKET_LIMIT);
     assert_eq!(account_count, 16 + MAX_OPAQUE_ACCOUNTS);
-    assert_eq!(writable_accounts, 9);
+    assert_eq!(writable_accounts, 10);
 
-    let metadata = send_success(&mut fixture.svm, transaction, "maximum opaque closure");
+    let metadata = send_success(
+        &mut fixture.svm,
+        transaction,
+        "maximum opaque closure with nested helper",
+    );
     assert!(metadata.compute_units_consumed <= EXECUTE_CU_CEILING);
     assert_engine_receipt_log(&metadata);
     assert_execution_shape(
@@ -1292,18 +1301,22 @@ fn maximum_opaque_closure_and_payload_boundaries_fail_closed() {
         &message_keys,
         fixture.engine_state,
         &opaque_keys,
-        false,
+        true,
     );
+    let engine: EngineState = fixture.read_anchor(fixture.engine_state);
+    let helper: HelperState = fixture.read_anchor(fixture.helper_state);
+    assert_eq!(engine.sequence, 1);
+    assert_eq!(engine.last_amount_out, ENGINE_OUTPUT);
+    assert_eq!(helper.calls, 1);
+    assert_eq!(helper.value, helper_increment);
     assert_eq!(
-        fixture
-            .read_anchor::<EngineState>(fixture.engine_state)
-            .sequence,
-        1
+        fixture.token_balance(fixture.user_destination_b),
+        ENGINE_OUTPUT
     );
 
     eprintln!(
         "generated max-closure metrics: {packet_bytes} bytes, {account_count} accounts, \
-         {writable_accounts} writable, {} CU",
+         {writable_accounts} writable, {} CU, depth 3",
         metadata.compute_units_consumed
     );
 
