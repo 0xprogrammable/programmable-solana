@@ -1,6 +1,6 @@
 # Routed callback authentication spike results
 
-Status: Locally implemented experiment; canonical Ubuntu reproduction pending
+Status: Implemented experiment; pinned Ubuntu reproduction pending
 
 Date: 2026-08-28
 
@@ -28,12 +28,14 @@ production custody design.
 
 The experiment was created from repository commit
 `1028824fdd22e4058a9ac97cd009283cdb838e63`, tree
-`463d96bc1326a9e8a57d06e84a57088495b85936`. The exact implementation commit,
-pull request, canonical Ubuntu artifact hashes, and successful reproduction run
-will be added only after repository CI has built and tested the frozen source.
-
-Until that second CI run succeeds, every artifact hash below is local evidence,
-not the repository's canonical reproducible-build record.
+`463d96bc1326a9e8a57d06e84a57088495b85936`. The complete implementation is
+frozen by commit `77e944c413c2188cdc59c032f7290ad3e4e82be0`, tree
+`e52552409b24f2ef10a30f53532b0990b5f67395`, in pull request
+[`#7`](https://github.com/0xprogrammable/programmable-solana/pull/7). Ubuntu run
+[`33196359651`](https://github.com/0xprogrammable/programmable-solana/actions/runs/33196359651)
+built that source, printed all four artifact hashes, and passed every repository
+and experiment test. Those hashes are now pinned. A second unchanged program
+build must match the manifest before this record calls them reproduced.
 
 ## Implemented flow
 
@@ -195,6 +197,20 @@ e228f8eca2710b8274a59331f40aeac2455da1c9107bb734ee7850adf45f347c  target/deploy/
 ```
 
 These local hashes are not assumed to equal the canonical Ubuntu hashes.
+
+## Pinned Ubuntu artifacts
+
+The first successful Ubuntu 24.04 CI build produced:
+
+```text
+8bdad75b02e9fb17955a02d3a00cfa9d3c62d5939eaab895375c4e39d722449d  target/deploy/programmable_routed_callback_core.so
+5a801bd093b30a82d9c82f54e2a053cc1e8761f6e494a9e12321f20ce8d5012c  target/deploy/routed_plan_engine.so
+7f72a27455f29bbdbce3507fbaafcb37946ed230b2438a5b9390fa1e038ac925  target/deploy/hostile_router_probe.so
+9cabf26d46bfcf4959e3eda7b8a9f648c780efcb8cc5a123055d93d8f79d1028  target/deploy/callback_capability_probe.so
+```
+
+The manifest records discovery evidence until a later CI run rebuilds the
+unchanged program inputs and passes the exact checksum gate.
 
 ## Not established
 

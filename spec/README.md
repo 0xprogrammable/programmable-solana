@@ -25,7 +25,9 @@ public interfaces or compatibility promises.
   deployment plan.
 - [`routed-callback-auth-spike-results.md`](routed-callback-auth-spike-results.md)
   records the measured local result, callback-shape decision, and unresolved
-  production gates. Canonical Ubuntu reproduction is still pending.
+  production gates. Pinned Ubuntu reproduction is still pending.
+- [`routed-callback-auth-sbf-v0.sha256`](routed-callback-auth-sbf-v0.sha256)
+  pins the four Ubuntu binaries discovered by the first successful CI build.
 - [`authority-kernel-spike-results.md`](authority-kernel-spike-results.md)
   records the executable result and its non-production limits.
 - [`authority-kernel-sbf-v0.sha256`](authority-kernel-sbf-v0.sha256) pins the

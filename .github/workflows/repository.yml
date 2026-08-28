@@ -257,7 +257,7 @@ jobs:
           PROGRAMMABLE_SBF_TOOLS_PINNED: "1"
         run: ./scripts/build-sbf.sh
 
-      - name: Print routed callback authentication artifact hashes
+      - name: Verify exact routed callback authentication artifacts
         working-directory: experiments/routed-callback-auth
         run: |
           sha256sum \
@@ -265,6 +265,7 @@ jobs:
             target/deploy/routed_plan_engine.so \
             target/deploy/hostile_router_probe.so \
             target/deploy/callback_capability_probe.so
+          sha256sum --check ../../spec/routed-callback-auth-sbf-v0.sha256
 
       - name: Run routed callback authentication static and runtime checks
         working-directory: experiments/routed-callback-auth
