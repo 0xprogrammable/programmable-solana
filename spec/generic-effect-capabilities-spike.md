@@ -1290,6 +1290,14 @@ StoredAuthorizationCandidateV0 payload =
                                                 4,776 bytes
 ```
 
+The exact 312-byte identity and 4,776-byte payload are one Core-owned account
+storage codec, not a second shared request-wire codec. The private Wire crate
+owns the 16-byte header, immutable row codecs, control arguments, and security
+hash preimages; Core alone owns the Anchor discriminator, fixed-array storage,
+lifecycle mutation, and exact 4,784-byte account serializer. Golden offset,
+round-trip, and trailing-byte tests prove the composition without maintaining a
+duplicate mutable-state serializer in two crates.
+
 The explicit 312-byte identity retains the Core program and experimental major
 even though the PDA owner is also checked; cross-program data cannot be mistaken
 for this Core's identity. Unused fixed-array rows are all zero. Header flags and
@@ -1333,13 +1341,21 @@ StoredAuthorizationChunkHeaderCandidateV0 {     // exactly 8 bytes
 Initialize recomputes every supplied root relationship and creates only a
 non-executable `Draft`. Every chunk instruction requires the same exact direct
 wallet or program-actor authority defined above, has exact length, writes one to
-four contiguous
-previously unwritten rows, and rejects overlap, gaps outside the declared count,
+four contiguous previously unwritten rows, and rejects overlap, gaps outside the
+declared count,
 unknown kinds, or nonzero padding. Activation likewise requires the actor,
 requires both bitmaps complete, recomputes all row roots and the intent digest,
 derives every initial capability-state row from the immutable term, and only
 then changes `Draft` to `Active`. The caller never supplies initial mutable
 capability or fee state.
+
+Initialization separates authority from rent funding. Its actor is the identity
+committed by the intent and satisfies the dual wallet/program-actor rule; a
+distinct writable signer may pay account creation rent without gaining any
+authorization right. The payer and actor may be the same wallet only through
+the explicitly validated duplicate-key privilege union. No other control-account
+alias is accepted. This keeps program-PDA actors and sponsored creation usable
+without treating payment as intent authority.
 
 The account then tracks:
 
@@ -1413,10 +1429,13 @@ cancellation priority over a transaction that lands first. Replacement never
 mutates immutable terms in place. The replacement instruction accepts only a
 complete new `Draft`, then atomically cancels the old `Active` authorization and
 activates the different `intent_digest`, normally created with a fresh nonce or
-different engine-terms commitment. The old actor authorizes cancellation; if
-the actor changes, the new actor independently authorizes activation. Cancelled
-and consumed accounts remain tombstones for this experiment and cannot be
-closed or recreated at sequence zero.
+different engine-terms commitment. Both accounts must commit the same exact
+actor, supplied once under the dual wallet/program-actor rule. Replacement is
+not an authority-transfer or two-party novation primitive. A different actor
+creates its own authorization and the old actor cancels separately; any future
+atomic cross-actor novation requires a distinct, explicit consent protocol.
+Cancelled and consumed accounts remain tombstones for this experiment and
+cannot be closed or recreated at sequence zero.
 
 A token delegate may still provide the asset-program authority needed to execute
 a stored classic-SPL debit. Each such source supplies the same exact
@@ -2108,6 +2127,18 @@ one is the stored-only explicit unconstrained-debit relation; unknown bits fail.
 `intent_local_term_index_or_none` proves the exact persistent-to-global
 mapping. The domain accounting slot and source spend-authority offset are
 present only when their declared role requires them and are otherwise `255`.
+For a domain-accounted capability, `domain_index_or_none` identifies the domain
+whose local accounting authority is exercised. For an intent-funded debit or
+exact external credit, that same field is only an optional required-domain
+predicate: `255` reconstructs a zero required-domain digest, while a present
+index reconstructs the authenticated descriptor digest at that index. It grants
+no domain rights and the domain-accounting slot remains `255`. A stored term's
+nonzero `required_domain_descriptor_digest_or_zero` must map through this field
+to that exact descriptor; a zero term requires `255`. A Core-reserved fee row
+always uses `255`. Thus direct, exact-delegate, and stored intents can all bind a
+domain without placing an execution-global index in persistent identity or
+inferring policy from opaque engine bytes.
+
 Credit-constraint bitmaps, resolved through the local-to-global mapping, are the
 only debit-to-credit relation; `reserved_0` and the other reserved bytes are
 zero. Unused dependent amounts are zero. Unknown witness kinds,
