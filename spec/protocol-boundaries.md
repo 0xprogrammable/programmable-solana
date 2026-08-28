@@ -22,18 +22,24 @@ The design separates three concerns:
 The core is expected to:
 
 - derive a canonical identity for every market;
-- bind each market to its engine, interface and code revision, participating
-  domains, Core-native asset profiles, any separately accepted external
-  settlement boundary, and fee configuration;
-- authenticate the actual asset accounts and capabilities supplied for each
+- bind each market to its engine program, interface version, code policy,
+  participating domain references, and fee configuration;
+- bind each domain to one immutable descriptor covering custody, asset,
+  accounting, exit, admission, and protected-capability profiles;
+- authenticate every protected asset account and capability supplied for each
   settlement;
-- authenticate every account participating in settlement;
-- prevent an execution from substituting or writing Core-owned state or custody
-  in a non-participating liquidity domain;
-- validate the engine-owned write set, CPI capability closure, and any explicit
+- hash-bind the exact ordered opaque account metas and effective privileges
+  without claiming to understand accounts owned by arbitrary external programs;
+- prevent an execution from substituting, debiting, closing, redirecting, or
+  changing Core-accounted state or rights in a non-participating liquidity
+  domain; unsolicited raw token credits may still occur but create no accounted
+  liquidity or claim;
+- validate the protected write set, reject opaque aliases into protected roles,
+  bind the actual CPI capability closure, and validate any explicit
   shared-liquidity domain;
-- verify that each participating domain's own local rule authorizes the market
-  and exact engine revision;
+- verify that each participating domain's own local rule authorizes the market,
+  engine program, interface, code policy, capability profile, and exact domain
+  descriptor;
 - constrain asset movement to the settlement authorized by the current
   transaction;
 - collect protocol fees through Core-native legs that an engine cannot bypass
@@ -51,11 +57,12 @@ valid market interaction.
 
 An engine is expected to:
 
-- define its market logic and engine-owned state;
+- define its market logic and any state it owns or composes through other
+  programs;
 - validate the conditions specific to that logic;
 - participate through the selected versioned callback shape and bind the same
   exact candidate plan as the Core;
-- declare the interface version and writable-account capabilities it uses;
+- declare the interface version and exact opaque account capabilities it uses;
 - identify engine state that is intentionally shared across markets; and
 - expose any engine-specific semantics through an optional public schema or
   decoder.
@@ -70,11 +77,12 @@ authority-bearing settlement capabilities are versioned and closed within each
 Core major.
 
 Core-native asset profiles receive the Core's strongest accounting and custody
-guarantees. A future permissionless external settlement driver would own its own
-state and semantics; the Core could authenticate objective effects but could not
-certify opaque custom economics. Its exact authority, admission, code identity,
-fee, and liveness contract requires a separate accepted decision before it is a
-public interface.
+guarantees. External programs remain permissionlessly composable in the opaque
+engine plane, but their bytes and receipts are `EngineAttested`; Core does not
+turn them into generic claims such as "NFT transferred" or "position closed."
+A new `CoreVerified` asset profile requires exact understood semantics and a
+separate accepted authority, admission, code-identity, fee, and liveness
+decision.
 
 ## Outside the core trust boundary
 
@@ -105,6 +113,11 @@ Current canonical markets and state must be discoverable from program accounts.
 An independent live indexer must be able to follow the evidence headers and
 detect gaps. Reconstructing history that a normal RPC node has already pruned
 requires an archival ledger source and is not a protocol-liveness guarantee.
+
+The known set of side-by-side Core program IDs comes from an append-only signed
+deployment manifest binding source, artifact, loader, and predecessor evidence.
+It is discovery metadata, not a writable onchain trade registry or settlement
+dependency.
 
 Indexer databases are not protocol state. If every Programmable-operated
 offchain service disappears, a developer with a Solana RPC connection and the

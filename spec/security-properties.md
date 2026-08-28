@@ -11,27 +11,39 @@ testing, not claims about code that does not yet exist.
    without authorization valid for that exact transaction or an accepted future
    authorization protocol.
 2. **Intent evidence** — for Core-native semantics, signed constraints bind
-   exact Core and engine revision, market, participating domains, assets,
-   recipients, amount bounds, fee ceilings, and expiry. For opaque semantics,
-   the Core binds exact payload, accounts, capabilities, objective Core-native
-   effects, and fees; unknown economic meaning remains engine-attested.
-3. **Liquidity-domain isolation** — an execution cannot write, debit, close, or
-   redirect Core-owned state or custody in a non-participating liquidity domain.
-   Markets that select the same domain deliberately accept shared reserves,
-   locks, economics, engine risk, and failure radius. Every participating
-   relation among domain, market, and exact engine revision is authorized by the
-   domain's own local admission rule; a plan cannot self-declare access.
+   exact Core, engine program, interface and code policy, market, participating
+   domain descriptors, assets, recipients, amount bounds, fee ceilings, and
+   expiry. For opaque semantics, the Core binds exact payload, accounts,
+   capabilities, objective Core-native effects, and fees; unknown economic
+   meaning remains engine-attested.
+3. **Liquidity-domain isolation** — an execution cannot substitute, debit,
+   close, redirect, or change Core-accounted state or rights in a
+   non-participating liquidity domain. Unsolicited raw token credits remain
+   possible because any holder can donate to a valid token account; they create
+   no accounted liquidity, fee liability, position, or claim. Markets that
+   select the same domain deliberately accept shared reserves, locks, economics,
+   engine risk, and failure radius. Every participating relation among the
+   immutable domain descriptor, market, engine program, interface, code policy,
+   and capability profile is authorized by the domain's own local admission
+   rule; a plan cannot self-declare access.
 4. **Actual capability closure** — the Core validates the engine's actual ordered
    CPI accounts and selected program. It derives effective privileges and
-   protected roles by public key and does not treat a manifest as a nested-call
-   sandbox.
-5. **Protected authority separation** — an engine receives no user or Core
-   signer, protected writable asset account, delegate, owner, close authority,
-   permit PDA, or other capability accepted to move protected value. Engine PDA
-   signers and pre-existing delegates are ambient authority and are tested as
-   such. For Core-native profiles and the first spike, the Core alone executes
-   protected-value movement. A future external settlement boundary requires its
-   own accepted authority invariant and is not authorized by this property.
+   protected roles by public key, rejects opaque aliases into the protected
+   plane, and hash-binds but does not semantically certify arbitrary external
+   accounts. A manifest is not treated as a nested-call sandbox.
+5. **Protected authority separation** — an engine receives no user signer,
+   value-bearing Core signer, protected writable asset account, delegate, owner,
+   close authority, permit PDA, or other capability accepted to move protected
+   value. Engine PDA signers and pre-existing delegates are ambient authority
+   and are tested as such. A future Core callback-authentication PDA is permitted
+   only when scoped by Core major, selected engine, market or domain, exact plan
+   digest, and callback phase, with forwarding, alias, replay, cross-engine, and
+   cross-market tests. No Core instruction or `CoreVerified` asset profile may
+   accept it for custody, fees, administration, upgrades, or protected-value
+   movement. Arbitrary external programs can assign meaning to a forwarded
+   signer; that remains opaque engine-plane risk, not Core authentication. For
+   Core-native profiles and the first spike, the Core alone executes
+   protected-value movement.
 6. **Engine-risk honesty** — the selected engine is the economic authorization
    oracle for participating domains. Conservation and Core execution do not
    imply fair pricing. Compromise may drain those domains economically but must
@@ -98,8 +110,10 @@ testing, not claims about code that does not yet exist.
 
 ## Liveness and offchain independence
 
-23. **Onchain execution** — a valid transaction can be built from public source
-    and submitted through any compatible Solana RPC endpoint.
+23. **Onchain execution and composition** — a valid transaction can be built
+    from public source and submitted through any compatible Solana RPC endpoint.
+    A public Core envelope must also define a safe CPI-caller path; the current
+    top-level-only Probe V0 is not that interface.
 24. **Current-state discovery** — canonical markets and current protocol state
     can be discovered from versioned program accounts without a privileged
     index.
@@ -116,9 +130,10 @@ testing, not claims about code that does not yet exist.
 28. **Operator failure separation** — website, API, indexer, DNS, repository, and
     company-account compromise cannot alter immutable onchain behavior without
     an independently valid transaction or onchain upgrade authority.
-29. **Exit-class honesty** — every persistent Core-custody market binds either an
-    exact engine-independent Core claim or disclosed engine-liveness dependence.
-    Only the former may claim an independent escape path.
+29. **Exit-class honesty** — every persistent Core-custody domain immutably binds
+    either an exact engine-independent Core claim or disclosed engine-liveness
+    dependence. Every market sharing that domain inherits the same class. Only
+    the former may claim an independent escape path.
 
 ## Required adversarial models
 
@@ -130,11 +145,13 @@ The staged test plan includes:
 - duplicate, reordered, aliased, undeclared, and shared writable accounts;
 - engine PDA signers, token delegates, close authorities, and forwarded permit
   signers;
-- substituted user limits, engine revision, fee policy, recipients, and expiry;
+- substituted user limits, engine identity, interface, code policy, fee policy,
+  recipients, and expiry;
 - fee omission, redirection, double assessment, netting, dust splitting,
   rounding, donation, liability, and claim attacks;
-- direct and indirect reentry, return-data overwrite, and later callback
-  mutation of earlier receipt-bound state;
+- direct and indirect reentry, callback-signer forwarding, cross-engine and
+  cross-market signer reuse, phase confusion, replay, return-data overwrite,
+  and later callback mutation of earlier receipt-bound state;
 - unsupported token behavior, Token-2022 extensions, and transfer-hook account
   aliases before those profiles are accepted;
 - account closure, revival, reinitialization, type substitution, and stale

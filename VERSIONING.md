@@ -24,5 +24,11 @@ or attestations, authorized signer rotation and recovery, and independent
 verification that the recorded ELF hash matches both the reviewed source build
 and the onchain program. The bootstrap commits are not release attestations.
 
+A new Core program cannot sign for an older Core's PDAs. Side-by-side majors are
+therefore compatibility and containment, not automatic migration. Any persistent
+domain that needs a future escape or migration must bind that engine-independent
+or user-authorized path in its original immutable descriptor; a later program ID
+cannot add it retroactively.
+
 Release tags and manifest formats will be finalized before the first devnet
 deployment. No mainnet release is produced automatically by a merge.

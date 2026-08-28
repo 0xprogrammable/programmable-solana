@@ -1,0 +1,26 @@
+skip_local_validator = true
+
+[toolchain]
+anchor_version = "1.1.2"
+solana_version = "3.1.10"
+
+[features]
+resolution = true
+skip-lint = false
+
+[workspace]
+members = [
+    "programs/core",
+    "test-programs/spike-engine",
+]
+
+[programs.localnet]
+programmable_core = "CfBnUaJwALVpd5Dtkt39zsvY9nwNTdrNxDvoxuCtKiR3"
+programmable_spike_engine = "HAhZQp2iaVWfP2mbSpSJvwMqUGaES4S5i4PxwHr6bNkQ"
+
+[provider]
+cluster = "localnet"
+wallet = ".anchor/local-wallet.json"
+
+[scripts]
+test = "cargo test --workspace --all-targets --locked"

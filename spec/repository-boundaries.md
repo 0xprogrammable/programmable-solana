@@ -34,6 +34,17 @@ scripts/                 deterministic development and verification helpers
 Directories are not created until they contain maintained code, tests, or
 documentation. This keeps the tree descriptive instead of decorative.
 
+The current authority experiment deliberately precedes those production names:
+
+```text
+programs/core/                    disposable Core V0 path
+crates/engine-probe-interface/    private fixed-width experiment wire
+test-programs/spike-engine/       configurable benign and hostile callee
+```
+
+None of these experiment names or bytes is the accepted `engine-interface` or a
+reference market engine.
+
 ## Dependency direction
 
 The engine interface is the narrow compatibility boundary:

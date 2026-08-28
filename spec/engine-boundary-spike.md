@@ -1,6 +1,10 @@
 # Engine boundary spike
 
-Status: Draft experiment plan
+Status: Draft experiment plan; first authority variant implemented
+
+The result of the first caller-supplied, pre-settlement variant is recorded in
+[`authority-kernel-spike-results.md`](authority-kernel-spike-results.md). The
+public callback and engine ABI remain undecided.
 
 This document defines the smallest executable experiment needed before a public
 Programmable engine ABI is designed. Names and structures here are descriptive,
@@ -37,18 +41,20 @@ state machines.
 
 ## Economic authority is explicit
 
-The engine does not possess a Core signer, but it is the economic authorization
-oracle for every participating liquidity domain. A compromised engine may
-approve a terrible exchange and drain or corrupt those domains through transfers
-the Core executes correctly. Conservation is not fair pricing.
+Probe V0 gives the engine no Core signer. The engine is still the economic
+authorization oracle for every participating liquidity domain. A compromised
+engine may approve a terrible exchange and drain or corrupt those domains
+through transfers the Core executes correctly. Conservation is not fair pricing.
 
 The Core contains that risk; it does not erase it. It grants or forwards no new
 authority over non-participating domains or unexposed user assets. Independently
 pre-existing delegates or mint authorities remain outside that guarantee.
 
-Markets must bind the selected engine revision or explicitly accept mutable
-engine behavior. A later code-identity design will be loader-specific and must
-be proven executable within current compute limits.
+The public design must separate engine program ID, interface version, and
+loader-aware code policy. A numeric revision is only experiment metadata. A
+domain either proves immutability at admission or explicitly accepts future code
+under the same program address; the check must be executable within current
+compute limits.
 
 ## Candidate plan
 
@@ -59,6 +65,7 @@ bind the same bytes. At minimum the plan commits to:
 - market and exact engine identity;
 - participating liquidity domains and their authorization proofs;
 - ordered supported-asset legs with exact accounts and proposed amounts;
+- the exact ordered opaque account metas and effective privileges;
 - separately signed user recipients, maximum debits, and minimum credits;
 - an opaque engine payload digest;
 - the authenticated Core fee policy and user fee ceiling; and
@@ -95,7 +102,8 @@ The engine receives no effective capability that can move protected user or Core
 value. This includes:
 
 - no user signer;
-- no Core vault, escrow, custody, fee, or market-authority signer;
+- no value-bearing Core vault, escrow, custody, fee, market, admin, or upgrade
+  signer;
 - no intent, permit, delegate, owner, close authority, Permanent Delegate, or
   other PDA signer accepted by a protected asset program;
 - no protected user asset account, Core vault, fee vault, or non-participating
@@ -107,6 +115,19 @@ A narrow seed and one-shot nonce do not make a generic token delegate safe. A
 malicious callee can abuse the first authorized use. The Core alone executes
 protected-value movements through exact supported programs after engine
 approval.
+
+A later CPI-routable callback may require a Core PDA signer to authenticate one
+exact `Core -> selected engine` callback. It is not a general certificate of
+Core approval. It must never own value, and its address must be domain-separated
+by Core major, selected engine, market or domain, exact plan digest, and callback
+phase. No Core instruction or `CoreVerified` asset profile may accept it for
+custody, fees, markets, administration, upgrades, or protected-value movement.
+A hostile engine can forward any signer it receives; arbitrary external
+programs may assign their own meaning to that forwarded capability. Such use is
+opaque engine-plane risk and does not authenticate Core beyond the selected
+callback. Forwarding, cross-engine substitution, cross-market reuse, phase
+confusion, replay, and protected-role alias tests are a separate experiment;
+the top-level-only Probe V0 does not settle the public caller ABI.
 
 For the strong first SPL Token profile, Core vaults have no token delegate and
 only the exact accepted close-authority configuration. A delegate independently
@@ -125,18 +146,22 @@ share reserves, locks, economics, engine risk, and liveness risk.
 
 Calling a domain "participating" does not authorize it. Every Core-owned domain
 binds an immutable or explicitly controlled local admission rule. Each execution
-proves the authorized relation among domain, market, and exact engine revision.
-A rule may deliberately allow any compatible market or several engines, but its
-liquidity providers accept that rule when they enter the domain.
+proves the authorized relation among domain descriptor, market, engine program,
+interface, code policy, and capability profile. A rule may deliberately allow
+any compatible market or several engines, but its liquidity providers accept
+that rule when they enter the domain.
 
 Anyone may permissionlessly create a market with a new domain they control under
 the public rules. Permissionless admission does not allow a new market to adopt
 someone else's existing domain without that domain's own authorization. This is
 a domain-local capability, not a Programmable allowlist or global registry.
 
-The Core promises that the engine cannot reach a non-participating Core-owned
-domain. It cannot infer universal domain labels for arbitrary opaque accounts
-owned by other programs.
+The Core promises that the engine cannot receive authority to debit, close,
+redirect, or alter Core-accounted state or rights in a non-participating
+Core-owned domain. A valid token account can still receive an unsolicited raw
+credit, including as a caller-selected output; that donation creates no
+accounted liquidity or claim. The Core cannot infer universal domain labels for
+arbitrary opaque accounts owned by other programs.
 
 ## Asset scope of the first spike
 
@@ -147,7 +172,8 @@ Token-2022 transfer hooks, Permanent Delegates, transfer fees, and custom asset
 programs require separate callback and accounting experiments. They are not
 silently treated as ordinary SPL Token behavior.
 
-An engine may already call arbitrary programs over its own accounts and PDAs.
+An engine may already call arbitrary programs over its own or opaque external
+accounts and PDAs.
 Before the protocol makes a general-purpose asset claim, a separate required
 decision must prove whether and how an external settlement driver safely moves
 custom protected value that the engine closure intentionally cannot. That design
@@ -212,7 +238,8 @@ from an engine are not canonical evidence.
 
 ## Engine callback variants to measure
 
-The spike implements these variants behind disposable test interfaces:
+The experiment plan compares these variants behind disposable test interfaces;
+only the first is implemented today:
 
 1. one writable `validate_and_transition` CPI before settlement;
 2. read-only validation before settlement plus a writable commit after all asset
@@ -230,10 +257,12 @@ return-data formats are not accepted by this document.
 
 ## Five first-stage proofs
 
-1. A hostile engine cannot write or move value in a non-participating domain or
-   protected user account through authority granted by Core, including through
-   aliases, forwarded delegates, or engine PDA signers. Relabeling a victim
-   domain as participating without its own admission proof fails.
+1. A hostile engine cannot debit, close, redirect, or alter Core-accounted state
+   or rights in a non-participating domain or protected user account through
+   authority granted by Core, including through aliases, forwarded delegates,
+   or engine PDA signers. Relabeling a victim domain as participating without
+   its own admission proof fails. Unsolicited raw credits remain possible but
+   create no accounted rights.
 2. Duplicate and reordered metas do not escalate effective privilege or change
    a protected role.
 3. Engine failure, transfer failure, fee failure, or a failed final callback
@@ -255,8 +284,8 @@ heap, packet, or account margins are inadequate.
 ## Required before persistent Core custody
 
 An engine can disappear, reject every call, or fail its pinned code policy. Any
-market that leaves assets in Core custody must therefore bind an exit class at
-creation:
+domain that leaves assets in Core custody must therefore bind one immutable exit
+class at creation, inherited by every admitted market:
 
 - no persistent custody;
 - a Core-verifiable engine-independent claim and withdrawal rule; or

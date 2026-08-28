@@ -11,7 +11,7 @@ documentation contributions through focused pull requests.
 - Update the specification and compatibility evidence with any public interface
   change.
 - Add a regression or adversarial test for every corrected security failure.
-- Run `./scripts/check-repository.sh`.
+- Run the pinned verification commands below.
 
 The repository check rejects bare 64-byte JSON arrays because they are
 indistinguishable from the canonical Solana CLI keypair format without further
@@ -19,9 +19,34 @@ context. Store a public signature fixture in a typed object, for example
 `{"fixtureType":"ed25519-signature","bytes":[...]}`. Never add a real keypair as
 a fixture or allowlist a secret path.
 
-The Rust, Solana, and JavaScript commands will be added here with their pinned
-toolchains when the first workspace is introduced. Do not infer a production
-toolchain from a developer's local installation.
+## Pinned spike toolchain
+
+The disposable engine-boundary experiment uses host Rust 1.96.0, Anchor crates
+1.1.2, and Solana CLI 3.1.10. Program crates retain a Rust 1.89.0 minimum so
+Agave's v1.52 SBF compiler can build them. It has no deployment keypair and must
+not be treated as a production toolchain or public engine interface.
+
+Run:
+
+```sh
+./scripts/check-repository.sh
+cargo fmt --all --check
+./scripts/build-spike-sbf.sh
+cargo clippy --workspace --all-targets --locked -- -D warnings
+cargo test --workspace --all-targets --locked
+```
+
+Build before running the tests because the LiteSVM harness loads the generated
+program binaries. The build script invokes `cargo build-sbf` directly so it does
+not retain a deployment identity; cargo-build-sbf's transient generated key is
+isolated in a temporary directory. It rejects any wrapper other than Agave
+3.1.10 and requests platform-tools v1.52 with the SBPFv0 target explicitly. On a
+fresh machine Agave may first download that compiler; only CI verifies the exact
+archive checksum and therefore produces the canonical Ubuntu build evidence.
+Local macOS artifacts are valid runtime-test inputs but currently have different
+ELF hashes and are not canonical release evidence. Do not run `anchor init
+--force`, copy generated keypairs into the repository, or use a developer's
+default Solana wallet for the spike.
 
 ## Commit titles
 
@@ -54,6 +79,7 @@ Changes to the following paths are protocol-critical:
 
 - `programs/core/`
 - `crates/engine-interface/`
+- `crates/engine-probe-interface/`
 - `deployments/`
 - `.github/workflows/`
 - the security properties and accepted architecture decisions

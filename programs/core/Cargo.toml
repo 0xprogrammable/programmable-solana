@@ -1,0 +1,44 @@
+[package]
+name = "programmable-core"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "Disposable Programmable Solana authority-kernel experiment"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "programmable_core"
+
+[features]
+default = []
+cpi = ["no-entrypoint"]
+no-entrypoint = []
+no-log-ix-name = []
+idl-build = ["anchor-lang/idl-build", "anchor-spl/idl-build"]
+anchor-debug = []
+custom-heap = []
+custom-panic = []
+
+[dependencies]
+anchor-lang.workspace = true
+# Anchor's token-account initialization derive references its token-interface
+# module even though every runtime account below is pinned to classic Token.
+anchor-spl = { workspace = true, features = ["token_2022"] }
+engine-probe-interface = { path = "../../crates/engine-probe-interface" }
+
+[dev-dependencies]
+litesvm.workspace = true
+litesvm-cpi-tree.workspace = true
+litesvm-token.workspace = true
+programmable-spike-engine = { path = "../../test-programs/spike-engine", features = ["no-entrypoint"] }
+solana-keypair.workspace = true
+solana-message.workspace = true
+solana-native-token.workspace = true
+solana-signer.workspace = true
+solana-transaction = { workspace = true, features = ["wincode"] }
+wincode = "=0.5.5"
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(target_os, values("solana"))'] }

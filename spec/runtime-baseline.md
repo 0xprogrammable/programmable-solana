@@ -39,6 +39,12 @@ Transaction v1, a 4,096-byte message, 128 locked accounts, a deeper CPI stack,
 and other proposed limits are not assumed until the relevant features are active
 on the deployment cluster and compatibility tests pass.
 
+The disposable spike currently builds with platform tools v1.52 and the legacy
+SBF syscall path. SBPFv3 is not an implicit upgrade: any later migration needs a
+new checksum-pinned compiler, an explicit `--arch v3` build, an `ELF Flags:
+0x3` assertion, byte-identical release artifacts, and the full runtime-semantic
+suite before any deployment or finalization on an activation-capable cluster.
+
 ## CPI semantics that shape the protocol
 
 - A callee cannot escalate inherited signer or writable privilege.
@@ -104,10 +110,11 @@ Before any devnet release candidate and again before mainnet:
 
 1. record cluster genesis hash, slot, software version, and active feature set;
 2. pin the exact Agave source and supported loader/token program deployments;
-3. run runtime-semantic fixtures under LiteSVM or Mollusk;
-4. run realistic callback and extension flows under an embedded Surfpool fork;
-5. run a small devnet smoke suite; and
-6. update this file in a reviewable commit if any observed constraint changed.
+3. pin the active SBF/SBPF compiler generation and rebuild reproducibly;
+4. run runtime-semantic fixtures under LiteSVM or Mollusk;
+5. run realistic callback and extension flows under an embedded Surfpool fork;
+6. run a small devnet smoke suite; and
+7. update this file in a reviewable commit if any observed constraint changed.
 
 ## Primary references
 
