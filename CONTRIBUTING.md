@@ -13,6 +13,12 @@ documentation contributions through focused pull requests.
 - Add a regression or adversarial test for every corrected security failure.
 - Run `./scripts/check-repository.sh`.
 
+The repository check rejects bare 64-byte JSON arrays because they are
+indistinguishable from the canonical Solana CLI keypair format without further
+context. Store a public signature fixture in a typed object, for example
+`{"fixtureType":"ed25519-signature","bytes":[...]}`. Never add a real keypair as
+a fixture or allowlist a secret path.
+
 The Rust, Solana, and JavaScript commands will be added here with their pinned
 toolchains when the first workspace is introduced. Do not infer a production
 toolchain from a developer's local installation.

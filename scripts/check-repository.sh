@@ -49,12 +49,45 @@ import subprocess
 import sys
 
 
-def is_solana_keypair(value: object) -> bool:
+def is_byte_array(value, lengths):
     return (
         isinstance(value, list)
-        and len(value) == 64
+        and len(value) in lengths
         and all(type(byte) is int and 0 <= byte <= 255 for byte in value)
     )
+
+
+def normalized_key(value):
+    return "".join(character for character in str(value).lower() if character.isalnum())
+
+
+def contains_named_secret(value, location):
+    if isinstance(value, dict):
+        for key, child in value.items():
+            child_location = f"{location}.{key}"
+            if normalized_key(key) in {
+                "keypair",
+                "mnemonic",
+                "privatekey",
+                "secretkey",
+                "seedphrase",
+            }:
+                if is_byte_array(child, {32, 64}):
+                    return child_location
+                if isinstance(child, str) and len(child.strip()) >= 32:
+                    return child_location
+
+            nested_location = contains_named_secret(child, child_location)
+            if nested_location:
+                return nested_location
+
+    if isinstance(value, list):
+        for index, child in enumerate(value):
+            nested_location = contains_named_secret(child, f"{location}[{index}]")
+            if nested_location:
+                return nested_location
+
+    return None
 
 
 tracked_paths = subprocess.check_output(["git", "ls-files", "-z"]).split(b"\0")
@@ -72,8 +105,16 @@ for raw_path in tracked_paths:
     except (OSError, UnicodeDecodeError, json.JSONDecodeError):
         continue
 
-    if is_solana_keypair(value):
-        print(f"Refusing Solana keypair array: {path}", file=sys.stderr)
+    # A bare 64-byte JSON array is the canonical Solana CLI keypair format. A
+    # public signature fixture must use a typed object such as
+    # {"fixtureType": "ed25519-signature", "bytes": [...]} instead.
+    if is_byte_array(value, {64}):
+        print(f"Refusing bare Solana keypair-shaped array: {path}", file=sys.stderr)
+        sys.exit(1)
+
+    secret_location = contains_named_secret(value, path)
+    if secret_location:
+        print(f"Refusing secret-shaped JSON value: {secret_location}", file=sys.stderr)
         sys.exit(1)
 PY
 
