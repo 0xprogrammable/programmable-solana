@@ -714,6 +714,25 @@ DomainAdmissionCandidateV0 {
 ```
 
 The private record payload is exactly 296 bytes. Reserved bytes must be zero.
+The first closed-rule profile supports one typed instance policy only:
+
+```text
+exact_engine_instance_policy_digest = H(
+  "exact-engine-instance-policy-v0",
+  Core program,
+  u32_le(Core experimental major),
+  engine_program,
+  engine_interface_id,
+  engine_instance_id
+)
+```
+
+Core derives this digest from the authenticated market binding and requires it
+to equal `engine_instance_policy_digest`. Direct equality with the opaque
+`engine_instance_id` is forbidden: an identity byte string is not also a typed
+policy digest. Any prefix, family, wildcard, controller-selected, or otherwise
+broader instance policy requires a separately specified policy kind and hash
+domain; unknown policy encodings fail closed.
 
 ```text
 closed_domain_admission_digest = H(
