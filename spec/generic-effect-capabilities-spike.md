@@ -1353,9 +1353,15 @@ Initialization separates authority from rent funding. Its actor is the identity
 committed by the intent and satisfies the dual wallet/program-actor rule; a
 distinct writable signer may pay account creation rent without gaining any
 authorization right. The payer and actor may be the same wallet only through
-the explicitly validated duplicate-key privilege union. No other control-account
-alias is accepted. This keeps program-PDA actors and sponsored creation usable
-without treating payment as intent authority.
+the explicitly validated duplicate-key privilege union at transaction root.
+Solana's checked Instructions-sysvar reconstruction exposes the resolved global
+signer/writable privileges, not the original lower privilege requested at each
+duplicate occurrence. The same wallet therefore appears signer+writable in both
+payer and actor positions, and Core accepts that exact effective shape without
+ever writing through the actor role. A program actor cannot use this alias and
+no other control-account alias is accepted. This keeps program-PDA actors and
+sponsored creation usable without treating payment as intent authority or
+claiming an unobservable per-position privilege distinction.
 
 The account then tracks:
 
@@ -2238,8 +2244,10 @@ security identity.
 For every direct witness and actor-authorized control instruction, Core also
 parses account 5 with the checked Instructions-sysvar API and applies the exact
 dual authority rule above. The wallet branch proves transaction-root Core bytes,
-ordered account keys, requested privileges, and signer meta. The program branch
-proves one direct CPI from the top-level parent, off-curve signer authority,
+ordered account keys, resolved effective privileges, and signer meta. It does
+not claim that the Instructions sysvar preserves original duplicate-position
+flags. The program branch proves one direct CPI from the top-level parent,
+off-curve signer authority,
 parent-meta presence, and protected-authority exclusions without claiming that
 the sysvar exposes inner CPI bytes. Nested routing or inherited signer privilege
 fails.
