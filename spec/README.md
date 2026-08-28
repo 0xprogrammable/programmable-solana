@@ -7,6 +7,12 @@ contract is encoded in an onchain program.
 
 - [`protocol-boundaries.md`](protocol-boundaries.md) defines what the protocol
   does and does not control.
+- [`engine-boundary-spike.md`](engine-boundary-spike.md) defines the smallest
+  experiment that must succeed before a public engine ABI is designed.
+- [`runtime-baseline.md`](runtime-baseline.md) pins the observed Solana limits
+  and semantics that the candidate design must survive.
+- [`competitive-baseline.md`](competitive-baseline.md) records the narrow,
+  source-backed product gap against the reviewed Solana DEX interfaces.
 - [`repository-boundaries.md`](repository-boundaries.md) maps code ownership,
   dependency direction, and future repository splits.
 - [`security-properties.md`](security-properties.md) lists the properties the

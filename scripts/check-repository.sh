@@ -17,8 +17,10 @@ readonly required_files=(
   "SECURITY.md"
   "VERSIONING.md"
   "spec/README.md"
+  "spec/competitive-baseline.md"
   "spec/protocol-boundaries.md"
   "spec/repository-boundaries.md"
+  "spec/runtime-baseline.md"
   "spec/security-properties.md"
   "spec/threat-model.md"
 )

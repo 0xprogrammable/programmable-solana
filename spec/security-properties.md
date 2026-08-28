@@ -8,91 +8,138 @@ testing, not claims about code that does not yet exist.
 ## Asset safety
 
 1. **Transaction authorization** — no asset leaves a user-controlled account
-   without authorization valid for that transaction.
-2. **User-intent binding** — a trade settles only within signed constraints that
-   bind the core and interface version, engine, market, input asset and maximum,
-   output asset and recipient, minimum output, fee ceiling, and expiry. Liquidity
-   and other asset actions require equivalent action-specific bounds.
-3. **Core market isolation** — an instruction for market A cannot write, debit,
-   close, or redirect market B's core-owned state or core-custodied vaults.
-4. **Declared engine capabilities** — every engine-owned writable account is
-   declared and bound to the current instruction. Intentionally shared engine
-   state requires an explicit capability and remains outside the core's
-   cross-market isolation guarantee.
-5. **Engine confinement** — an engine can influence only the accounts, state, and
-   settlement explicitly exposed to it for the current instruction.
-6. **Conservation** — every successful settlement balances inputs, outputs, fees,
-   and explicitly permitted token behavior under checked arithmetic.
-7. **Fee enforcement** — no supported engine path can settle a trade while
-   bypassing the authenticated market fee configuration effective for that
-   execution or exceeding the user's signed fee ceiling.
-8. **Atomic failure** — validation failure, engine failure, exhausted compute,
-   or a failed token transfer leaves no partial protocol state transition.
+   without authorization valid for that exact transaction or an accepted future
+   authorization protocol.
+2. **Intent evidence** — for Core-native semantics, signed constraints bind
+   exact Core and engine revision, market, participating domains, assets,
+   recipients, amount bounds, fee ceilings, and expiry. For opaque semantics,
+   the Core binds exact payload, accounts, capabilities, objective Core-native
+   effects, and fees; unknown economic meaning remains engine-attested.
+3. **Liquidity-domain isolation** — an execution cannot write, debit, close, or
+   redirect Core-owned state or custody in a non-participating liquidity domain.
+   Markets that select the same domain deliberately accept shared reserves,
+   locks, economics, engine risk, and failure radius. Every participating
+   relation among domain, market, and exact engine revision is authorized by the
+   domain's own local admission rule; a plan cannot self-declare access.
+4. **Actual capability closure** — the Core validates the engine's actual ordered
+   CPI accounts and selected program. It derives effective privileges and
+   protected roles by public key and does not treat a manifest as a nested-call
+   sandbox.
+5. **Protected authority separation** — an engine receives no user or Core
+   signer, protected writable asset account, delegate, owner, close authority,
+   permit PDA, or other capability accepted to move protected value. Engine PDA
+   signers and pre-existing delegates are ambient authority and are tested as
+   such. For Core-native profiles and the first spike, the Core alone executes
+   protected-value movement. A future external settlement boundary requires its
+   own accepted authority invariant and is not authorized by this property.
+6. **Engine-risk honesty** — the selected engine is the economic authorization
+   oracle for participating domains. Conservation and Core execution do not
+   imply fair pricing. Compromise may drain those domains economically but must
+   not reach non-participating domains.
+7. **Core-native conservation** — every successful Core-native settlement
+   balances authenticated inputs, outputs, protocol fees, and supported token
+   behavior under checked arithmetic. Opaque assertions are not covered merely
+   because a receipt says they balance.
+8. **Protocol-fee authority** — mandatory assessments come from an authenticated
+   Core-owned policy and cannot be removed, zeroed, duplicated, redirected, or
+   replaced by caller or engine data. No charge exceeds the user's ceiling.
+9. **Protocol-fee accounting** — only a Core-verified fee-vault credit creates
+   accounted liability. Donations do not. Claims cannot exceed liability or use
+   a caller-selected destination; liability reduction and transfer are atomic.
+10. **Atomic protocol state** — validation, engine, transfer, fee, compute, or
+    finalization failure leaves no partial account-state transition. Network fees
+    and failed-transaction metadata are not described as rolled back.
+11. **Cross-phase finality** — no later callback may mutate protected or
+    receipt-bound state after the check on which a Core guarantee depends. A
+    post-settlement engine callback, if selected, is the last account-bearing
+    untrusted CPI.
 
 ## Authority and identity
 
-9. **Canonical derivation** — market and vault authorities are derived from
-   domain-separated seeds that include the market identity.
-10. **Explicit ownership** — every protocol-owned writable account is checked for
-    the expected owner, address, market binding, and lifecycle state before use.
-    Engine-owned accounts are checked against their declared capabilities.
-11. **No offchain signer** — ordinary trading and liquidity actions do not require
-   a Programmable server key, keeper, or API authorization.
-12. **Explicit administration** — under the currently deployed code, each pause
-    or configuration authority can invoke only its documented instructions. Its
-    scope and every change are visible onchain and in the deployment manifest.
-13. **Upgrade-authority honesty** — any remaining upgrade authority can replace
-    program behavior and may therefore defeat every code-level invariant over
-    program-controlled assets without a user's new signature. Its controller,
-    constraints, delay, recovery, and removal path are explicit. A deployment
-    with unilateral immediate upgrade power cannot claim minimized trust.
+12. **Canonical derivation** — market, domain, vault, and fee identities use
+    domain-separated inputs including controller program and interface or
+    revision context.
+13. **Ownership and lifecycle** — every protocol-owned writable account is
+    checked for expected address, owner, type, market or domain relation, and
+    lifecycle state before use. Revival, reinitialization, closure, and type
+    substitution fail closed.
+14. **Permissionless admission** — any developer can create a market with an
+    arbitrary executable engine that satisfies public deterministic interface,
+    resource, fee, and authority rules. No API key, admin signer, platform
+    allowlist, listing vote, or private registration is required. Strong
+    Core-native asset profiles may remain objectively narrower.
+15. **No offchain signer** — ordinary execution does not require a Programmable
+    server key, keeper, API, or indexer authorization.
+16. **No generic administrator** — no global authority can make arbitrary calls,
+    move user or market assets, rewrite an engine, or silently expand an
+    accepted Core major. Any temporary or scoped authority has only named powers
+    visible in the deployment manifest.
+17. **Upgrade-authority honesty** — a remaining Core, engine, or external-program
+    upgrade authority may defeat the guarantees of domains that trust it. Its
+    controller, constraints, code policy, and removal state are explicit. A
+    unilateral immediate authority cannot be called immutable or trust-minimized.
 
 ## Extensibility
 
-14. **Versioned interpretation** — the same interface version and bytes have one
-    deterministic meaning across the core, engine, clients, and indexers.
-15. **Fail-closed compatibility** — unsupported versions, unknown token behavior,
-    undeclared, unbound, or unauthorized writable accounts, malformed return
-    data, and ambiguous state are rejected.
-16. **Resource bounds** — engine interaction has explicit account, compute,
-    recursion, return-data, and settlement limits that can be tested.
-17. **Old-version evidence** — every published interface version retains fixtures
-    that either keep passing or prove why a new core deployment is required.
+18. **Versioned interpretation** — the same accepted interface version and bytes
+    have one deterministic meaning across Core, engines, clients, and indexers.
+19. **Fail-closed strong profiles** — unsupported versions, unknown behavior in
+    a Core-native profile, undeclared capabilities, malformed return data, and
+    ambiguous protected authority are rejected. Opaque behavior is allowed only
+    under an explicitly weaker evidence and authority boundary.
+20. **Resource bounds** — engine interaction has explicit account, packet,
+    compute, stack, return-data, and settlement limits with measured headroom.
+21. **Old-version evidence** — every accepted interface retains fixtures that
+    either keep passing or prove why a new Core deployment is required.
+22. **Open market semantics** — adding a curve, auction, order type, spread,
+    provider model, game, or other engine-owned state machine requires no
+    Programmable approval or Core product enum. A new protected authority
+    primitive may require a new Core major.
 
 ## Liveness and offchain independence
 
-18. **Onchain execution** — a valid transaction can be built from public source
+23. **Onchain execution** — a valid transaction can be built from public source
     and submitted through any compatible Solana RPC endpoint.
-19. **Current-state discovery** — canonical markets and current protocol state can
-    be discovered from versioned program accounts without a privileged index.
-20. **Verifiable event stream** — successful core settlements emit a versioned
-    common envelope with a detectable market-local sequence or checkpoint.
-    Global ordering uses the Solana ledger position instead of protocol-wide
-    mutable state. Engine-specific semantics remain optional schemas rather than
-    implied core knowledge.
-21. **Archive boundary** — an independent live indexer can follow and verify the
-    event stream. Reconstructing already-pruned history requires an archival
-    ledger source and is not a protocol-liveness guarantee.
-22. **No global writable bottleneck** — ordinary market operations do not depend
-    on one globally writable registry, fee accumulator, or authority account.
-    State and fee writes are market-local or safely sharded so one market cannot
-    serialize or halt unrelated markets.
-23. **Failure separation** — website, API, indexer, DNS, and company-account
-    compromise cannot alter onchain state without an independently valid Solana
-    transaction.
+24. **Current-state discovery** — canonical markets and current protocol state
+    can be discovered from versioned program accounts without a privileged
+    index.
+25. **Verifiable event stream** — successful Core settlements emit a versioned
+    evidence header authenticated by Core invocation context and state. Global
+    order comes from the ledger; shard or state digests avoid a mandatory global
+    or market-wide writable counter.
+26. **Archive boundary** — an independent live indexer can follow and verify
+    events. Reconstructing pruned history requires an archival ledger source and
+    is not a protocol-liveness guarantee.
+27. **No global writable bottleneck** — ordinary execution does not depend on one
+    global registry, fee accumulator, sequence, or authority account. State and
+    fees are domain-local or sharded.
+28. **Operator failure separation** — website, API, indexer, DNS, repository, and
+    company-account compromise cannot alter immutable onchain behavior without
+    an independently valid transaction or onchain upgrade authority.
+29. **Exit-class honesty** — every persistent Core-custody market binds either an
+    exact engine-independent Core claim or disclosed engine-liveness dependence.
+    Only the former may claim an independent escape path.
 
 ## Required adversarial models
 
-The test plan must include at least:
+The staged test plan includes:
 
-- a malicious engine returning crafted settlement data;
-- cross-market vault and account substitution;
+- a compromised engine approving an economically destructive but conservative
+  plan in a participating domain;
+- cross-domain vault, owner, mint, recipient, and account substitution;
 - duplicate, reordered, aliased, undeclared, and shared writable accounts;
-- substituted user intent, recipients, fee bounds, and expired transactions;
-- fee rounding, zero amounts, maximum values, and arithmetic boundaries;
-- re-entry and nested cross-program invocation attempts;
-- unsupported token extensions and transfer behavior;
-- stale interface versions and corrupted account discriminators;
-- compute exhaustion, oversized return data, and global hot-account contention;
-- missing event checkpoints and pruned history; and
-- compromise of each declared administrative authority.
+- engine PDA signers, token delegates, close authorities, and forwarded permit
+  signers;
+- substituted user limits, engine revision, fee policy, recipients, and expiry;
+- fee omission, redirection, double assessment, netting, dust splitting,
+  rounding, donation, liability, and claim attacks;
+- direct and indirect reentry, return-data overwrite, and later callback
+  mutation of earlier receipt-bound state;
+- unsupported token behavior, Token-2022 extensions, and transfer-hook account
+  aliases before those profiles are accepted;
+- account closure, revival, reinitialization, type substitution, and stale
+  references;
+- compute, packet, locked-account, stack, and return-data exhaustion;
+- event-shaped logs from a non-Core invocation or failed transaction;
+- unavailable or changed engines with persistent Core custody; and
+- compromise of each declared administrative or upgrade authority.
