@@ -19,8 +19,10 @@ or approved for production use.
   or a listing agreement to build an engine or create a market.
 - **Onchain liveness.** Trading and settlement must not depend on the website,
   indexer, API, or a Programmable-operated signer.
-- **Market isolation.** A faulty or hostile engine must not gain authority over
-  another market's accounts or assets.
+- **Liquidity-domain isolation.** A faulty or hostile engine must not gain
+  direct authority over Core custody or a non-participating domain. It remains
+  the economic authorization oracle for participating domains, which share its
+  disclosed risk when they share liquidity.
 - **Versioned extensibility.** The engine contract evolves through explicit
   versions and compatibility tests instead of hidden assumptions.
 - **Honest security boundaries.** The protocol secures its own invariants; it
