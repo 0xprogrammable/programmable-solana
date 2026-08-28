@@ -1415,10 +1415,10 @@ of current runtime stack behavior.
 
 Every successful stored execution increments `fill_sequence`, consumes one
 bounded successful-fill count, and either leaves a valid `Active` state or enters
-`Consumed`. This includes an explicitly authorized zero-protected-debit engine
-transition; without a finite fill count, such a transition would have no replay
-boundary. Cancellation, expiry, exhaustion, wrong sequence, non-`Active` status,
-or terminal replay fails before the engine callback.
+`Consumed`. This includes an explicitly authorized credit-bearing participant
+whose protected debit is zero; without a finite fill count, such a participant
+would have no replay boundary. Cancellation, expiry, exhaustion, wrong sequence,
+non-`Active` status, or terminal replay fails before the engine callback.
 
 Each participating authorization must receive or fund at least one non-fee
 protected delta attributed to its slot. A zero-debit but credit-bearing
@@ -2754,8 +2754,8 @@ Tests cover:
   unless a StoredAuthorization supplies explicit replay state;
 - partial fills whose sum exactly reaches the authorized maximum;
 - one additional partial fill after exhaustion;
-- zero-debit execution bounded by and consuming the signed successful-fill
-  count;
+- a credit-bearing zero-debit stored authorization bounded by and consuming the
+  signed successful-fill count;
 - an unrelated pure no-op authorization inserted into a multi-intent envelope;
 - duplicate intent digest, stored account, or non-canonical slot assignment in
   one multi-intent set;
