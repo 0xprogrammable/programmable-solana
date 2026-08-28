@@ -78,6 +78,8 @@ release artifacts, and onchain deployments.
 ## Change ownership
 
 Until a GitHub organization and multiple maintainers exist, `@0xprogrammable` is
-the only CODEOWNER. Before mainnet, ownership of the core, engine interface,
-workflows, and deployment manifests must move behind an organizational and
-multi-person review boundary.
+the only CODEOWNER. Exploratory work may begin under that boundary, but no
+security-critical core implementation may be marked accepted and no artifact may
+be presented as trusted until the core, engine interface, workflows, and
+deployment manifests have an organizational owner and independent multi-person
+review.
