@@ -1,0 +1,11 @@
+[package]
+name = "routed-callback-probe-wire"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[dependencies]
+solana-pubkey.workspace = true
+solana-sha256-hasher = { workspace = true, features = ["sha2"] }

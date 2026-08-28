@@ -58,10 +58,11 @@ Experiment programs are security-critical evidence but are not supported
 protocol releases, production topology, or public interfaces. Their source may
 be removed once a reviewable result record preserves the conclusion and every
 repository, workflow, and specification reference is removed in the same
-change. The current isolated workspace is:
+change. The current isolated workspaces are:
 
 ```text
 experiments/engine-generated-settlement/   disposable generated-output probe
+experiments/routed-callback-auth/           disposable routed-authentication probe
 ```
 
 ## Dependency direction

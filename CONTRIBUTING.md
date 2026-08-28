@@ -58,6 +58,18 @@ lockfile. Run its complete gate from the repository root with:
 Its Cargo packages and path dependencies must remain wholly inside that nested
 workspace. The root workspace must never depend on experiment code.
 
+The routed-callback-auth experiment is a separate private workspace with four
+different disposable programs. Run its complete local gate from the repository
+root with:
+
+```sh
+./experiments/routed-callback-auth/scripts/check.sh
+```
+
+It must not import the predecessor experiment, load predecessor build output, or
+reuse its program IDs. A local successful build is not canonical artifact or
+deployment evidence.
+
 ## Commit titles
 
 Write short English titles in the imperative, with one concrete purpose and no

@@ -1,0 +1,30 @@
+skip_local_validator = true
+
+[toolchain]
+anchor_version = "1.1.2"
+solana_version = "3.1.10"
+
+[features]
+resolution = true
+skip-lint = false
+
+[workspace]
+members = [
+    "programs/routed-callback-core",
+    "test-programs/routed-plan-engine",
+    "test-programs/hostile-router-probe",
+    "test-programs/callback-capability-probe",
+]
+
+[programs.localnet]
+programmable_routed_callback_core = "Bwhiw9S9ZdHkEhFF2Ps89HMxa5dHX1xSbdsGZ8W3qR2b"
+routed_plan_engine = "5UNyG5GQpPwyoDgsvt4JzdqJxJzPh52pVbUDjEa5Gikh"
+hostile_router_probe = "F62maceZqpLAayyBLsXNGdrmKg9cZWdpSDbzoHuNgk6Q"
+callback_capability_probe = "6QXXm7aqjRxQGJ6V3nvtS5taHuojM9SisVrHg3Xrj1Vj"
+
+[provider]
+cluster = "localnet"
+wallet = ".anchor/local-wallet.json"
+
+[scripts]
+test = "cargo test --workspace --all-targets --locked"

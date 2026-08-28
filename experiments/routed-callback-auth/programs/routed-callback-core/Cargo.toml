@@ -1,0 +1,53 @@
+[package]
+name = "programmable-routed-callback-core"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "Disposable Core for the routed callback authentication experiment"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "programmable_routed_callback_core"
+
+[features]
+default = []
+cpi = ["no-entrypoint"]
+no-entrypoint = []
+no-log-ix-name = []
+idl-build = ["anchor-lang/idl-build", "anchor-spl/idl-build"]
+anchor-debug = []
+custom-heap = []
+custom-panic = []
+
+[dependencies]
+anchor-lang.workspace = true
+# The derive used for classic token-account initialization resolves through
+# Anchor's token-interface module, even though this experiment settles only
+# through the classic SPL Token program.
+anchor-spl = { workspace = true, features = ["token_2022"] }
+routed-callback-probe-wire = { path = "../../crates/routed-callback-probe-wire" }
+solana-sha256-hasher.workspace = true
+
+[dev-dependencies]
+base64.workspace = true
+litesvm.workspace = true
+litesvm-cpi-tree.workspace = true
+litesvm-token.workspace = true
+routed-plan-engine = { path = "../../test-programs/routed-plan-engine", features = ["no-entrypoint"] }
+callback-capability-probe = { path = "../../test-programs/callback-capability-probe", features = ["no-entrypoint"] }
+hostile-router-probe = { path = "../../test-programs/hostile-router-probe", features = ["no-entrypoint"] }
+solana-address-lookup-table-interface.workspace = true
+solana-account.workspace = true
+solana-clock.workspace = true
+solana-keypair.workspace = true
+solana-message.workspace = true
+solana-native-token.workspace = true
+solana-program-pack.workspace = true
+solana-signer.workspace = true
+solana-transaction = { workspace = true, features = ["wincode"] }
+wincode = "=0.5.5"
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(target_os, values("solana"))'] }
