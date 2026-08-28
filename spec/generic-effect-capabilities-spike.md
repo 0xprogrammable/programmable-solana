@@ -334,7 +334,24 @@ For every opaque-tail position Core records:
 ```text
 position || key || landing-time owner || executable
          || effective signer || effective writable
+
+OpaqueCapabilityDescriptorCandidateV0 {         // exactly 68 bytes
+  position: u8
+  key: [u8; 32]
+  landing_time_owner: [u8; 32]
+  executable: u8
+  effective_signer: u8
+  effective_writable: u8
+}
+
+opaque_capability_root = H(
+  "opaque-capability-set-v0",
+  u32_le(opaque_capability_count),
+  every complete 68-byte row in contiguous position order
+)
 ```
+
+The three privilege fields are canonical booleans.
 
 Order and multiplicity are preserved. Security validation is by public key:
 every occurrence of one key receives the union of signer and writable privilege
@@ -419,6 +436,10 @@ asset_set_digest = H(
   every complete 100-byte persistent binding in execution asset-index order
 )
 ```
+
+Execution asset indices are assigned by strictly increasing
+`asset_binding_digest`; duplicate digests fail. The set root therefore has one
+canonical order rather than accepting caller-selected permutations.
 
 The classic-SPL fixture requires the candidate wire version, zero flags and
 reserved byte, and exact mint, program, decimals, and settlement-profile facts.
@@ -548,6 +569,11 @@ evidence. Onchain capture proves a later-slot observation, not finality. Release
 tooling must separately wait for the finalized fork before publishing it as
 stable evidence.
 
+The private capture instruction discriminator is `e3646e8c56a7c312`; its exact
+144-byte argument is the already defined admission-policy row, without a second
+wrapper or alternate encoding. Capture accepts only immutable policy kind zero
+and rejects trailing data.
+
 The market and every participating domain bind
 `engine_admission_policy_digest`. The top-level envelope, every intent, and the
 engine request bind the exact `engine_loader_state_snapshot_digest` used for
@@ -637,6 +663,17 @@ The account bump and stored self-digest are not part of this row. Unknown rule
 kinds and nonzero reserved bytes fail. No caller or Core module may hash an
 Anchor account serialization as a substitute for this codec.
 
+The only rule kinds in this candidate are `DOMAIN_RULE_OPEN = 0` and
+`DOMAIN_RULE_CLOSED = 1`. The open descriptor must carry exactly:
+
+```text
+open_domain_rule_digest = H("open-domain-rule-v0")
+```
+
+The closed descriptor must carry a nonzero digest different from that open-rule
+constant. Every other rule kind, zero rule digest, or mismatched combination
+fails closed.
+
 Every domain debit or accounted credit in the settlement table requires a proof
 owned or otherwise authorized by that domain's own admission rule. The proof
 binds the exact relation among:
@@ -678,6 +715,13 @@ DomainAdmissionCandidateV0 {
 
 The private record payload is exactly 296 bytes. Reserved bytes must be zero.
 
+```text
+closed_domain_admission_digest = H(
+  "domain-admission-record-v0",
+  complete exact 296-byte admission row as one framed part
+)
+```
+
 Its candidate address is:
 
 ```text
@@ -713,6 +757,56 @@ the domain descriptor. Core evaluates that predicate from the same engine,
 market, code, and profile facts. "Open" therefore means the domain chose an open
 predicate; it does not mean that the market can omit the proof or choose the
 predicate at execution time.
+
+Core normalizes either admission path into one exact execution row:
+
+```text
+DomainExecutionRowCandidateV0 {                 // exactly 208 bytes
+  domain_index: u8
+  admission_kind: u8
+  reserved: [u8; 6]
+  domain_descriptor_key: [u8; 32]
+  domain_descriptor_digest: [u8; 32]
+  domain_revision: u64
+  admission_account_or_zero: [u8; 32]
+  admission_digest: [u8; 32]
+  accounting_account: [u8; 32]
+  accounting_profile_digest: [u8; 32]
+}
+
+domain_execution_digest = H(
+  "domain-execution-v0",
+  market_binding_digest,
+  complete 208-byte execution row
+)
+
+domain_set_digest = H(
+  "domain-set-v0",
+  u32_le(domain_count),
+  each complete 32-byte domain_execution_digest in contiguous domain-index order
+)
+```
+
+`ADMISSION_OPEN = 0` and `ADMISSION_CLOSED = 1` are the only admission kinds and
+must equal the descriptor rule kind. For an open rule,
+`admission_account_or_zero` is zero and Core derives:
+
+```text
+admission_digest = H(
+  "open-domain-admission-v0",
+  domain_descriptor_digest,
+  market_binding_digest
+)
+```
+
+It accepts only a Core-valid market and selected engine whose authenticated
+admission and protected-profile facts match the descriptor. For a closed rule,
+the admission account is nonzero, is the exact canonical PDA above, and its
+complete authenticated record digest is the row's `admission_digest`; Core also
+checks its matching facts, revision, active interval, and non-revocation. Domain
+indices are assigned by strictly increasing `domain_descriptor_digest` and are
+contiguous; duplicate descriptor digests fail. All identity digests and
+accounting keys are nonzero, and reserved bytes are zero.
 
 Multiple admitted markets may share one domain. They then deliberately share
 reserves, locks, engine risk, economics, and liveness risk. A non-participating
@@ -788,7 +882,8 @@ CreditConstraintCandidateV0 {                    // exactly 64 bytes
   constraint_index: u8
   credit_local_index: u8
   flags: u8
-  reserved: [u8; 5]
+  reserved: [u8; 3]
+  debit_source_bitmap: u16
   debit_group_root: [u8; 32]
   minimum_credit_numerator: u64
   nonzero_debit_denominator: u64
@@ -810,7 +905,12 @@ credit_constraints_root = H(
 
 Flags and reserved bytes are zero in this experiment. Every local index resolves
 inside the same intent; a constraint cannot refer directly to a later global
-settlement row.
+settlement row. The bitmap is nonzero, uses only bits below the signed term
+count, excludes the credit term itself, and reveals the exact source membership
+needed to execute a stored intent. Core recomputes `debit_group_root` from its
+strictly increasing set bits. A source may participate in more than one
+constraint, allowing one debit to require several independent credits without a
+single-pair bottleneck.
 
 Core derives the immutable terms root and identity exactly as follows:
 
@@ -843,8 +943,8 @@ maximum from its Core account.
 For a direct or exact-delegate witness, Core reconstructs the complete local
 term list from that slot's landed SettlementCapability rows: local indices are
 contiguous, exact endpoint and asset/domain facts replace transient indices, and
-the one-shot absolute minimum and paired-credit relation are sufficient. The
-one-shot fixture therefore has an empty cumulative-credit-constraint list. A
+the one-shot absolute minimum on each credit term is sufficient. The one-shot
+fixture therefore has an empty cumulative-credit-constraint list. A
 stored witness instead loads its exact persistent 136-byte terms and 64-byte
 constraints first, then proves the landed rows are a complete one-to-one mapping
 of those local records. No executor supplies an uncommitted Core term through
@@ -916,7 +1016,7 @@ The two mutable subroots have exact rows:
 ```text
 CapabilityStateRowCandidateV0 {                 // exactly 88 bytes
   local_term_index: u8
-  paired_local_term_index_or_none: u8
+  reserved_0: u8
   flags: u8
   reserved: [u8; 5]
   initial_maximum_engine_debit: u64
@@ -953,19 +1053,28 @@ fee_state_root = H(
 ```
 
 Capability flag bit zero is `FEE_FUNDING`; all other bits and every reserved
-byte fail. `255` is the only absent paired-local-term sentinel. Initial values
+byte, including `reserved_0`, fail. Initial values
 must equal the immutable 136-byte term, and each local index is unique and
 contiguous. Fee-state flags and reserved bytes are zero; group digests are
 unique, and each funding local term, fee class, and maximum fee must match the
 immutable terms and authenticated policy.
 
+Fee-state rows are not caller-supplied during staged creation. An active stored
+authorization begins with zero fee-state rows. On the first authenticated use of
+a `FEE_FUNDING` term, Core derives the only possible group from the intent
+principal, the term's authenticated asset-binding preimage, fee class, and
+policy revision, inserts a zero-before row, and applies the fill atomically.
+Later fills must resolve that exact row. Existing plus newly derived rows are
+stored in strict rounding-group-digest order; empty fixed-array slots are all
+zero. Thus partial-fill rounding state remains persistent without asking a
+creator to provide fee-group preimages that are absent from the 136-byte term.
+
 Only a credit local-term row carries authoritative `cumulative_credit`;
-non-credit rows keep it zero. Debit rows keep the paired credit's local index as
-membership and mapping only, never as a duplicated credit counter. Credit rows
-keep cumulative engine and fee debit zero. For each immutable credit constraint,
-Core resolves the strict debit-group list, requires every source to name that
-constraint's credit local term, sums their cumulative engine debit with checked
-arithmetic, and enforces after every committed prefix:
+non-credit rows keep it zero. Credit rows keep cumulative engine and fee debit
+zero. Constraint bitmaps are the sole membership relation. For each immutable
+credit constraint, Core resolves its authenticated bitmap, sums the referenced
+source rows' cumulative engine debit with checked arithmetic, and enforces after
+every committed prefix:
 
 ```text
 credit_row.cumulative_credit
@@ -1061,6 +1170,11 @@ intent_spend_authority = PDA(
 )
 ```
 
+The canonical top-level approval helper has discriminator `04cf33c35d503375`
+and exactly 40 argument bytes: `intent_digest: [u8; 32]` followed by nonzero
+`amount: u64`. It rejects trailing data and proves the complete top-level actor
+call before issuing Classic SPL `ApproveChecked`.
+
 For every delegated source, the token owner must equal the intent actor, the
 delegate must equal that source's exact intent-spend authority, its positive
 allowance must equal that source's observed engine debit plus Core-derived fee
@@ -1086,8 +1200,91 @@ stored_authorization = PDA(
 ```
 
 The 32-byte intent digest is the one identity seed and is independent of mutable
-fill state. Initialization validates a pre-funded PDA safely rather than
-assuming it has zero lamports. Its account data tracks at least:
+fill state. A maximum-size authorization cannot carry all 12 terms and 12
+constraints in one Solana transaction, so creation is an explicit staged state
+machine rather than an impossible one-shot ABI. Initialization validates a
+pre-funded PDA safely rather than assuming it has zero lamports. Its account
+payload is exactly 4,776 bytes, or 4,784 bytes including the account
+discriminator:
+
+```text
+StoredAuthorizationHeaderCandidateV0 {          // exactly 16 bytes
+  wire_version: u8
+  lifecycle: u8
+  bump: u8
+  term_count: u8
+  constraint_count: u8
+  fee_state_count: u8
+  flags: u8
+  reserved: u8
+  term_written_bitmap: u16
+  constraint_written_bitmap: u16
+  fill_sequence: u32
+}
+
+StoredAuthorizationCandidateV0 payload =
+  header                                         16
+  explicit Core-owned identity                  312
+  pending_execution_digest                       32
+  IntentCapabilityTermCandidateV0[12]          1,632
+  CreditConstraintCandidateV0[12]                768
+  CapabilityStateRowCandidateV0[12]            1,056
+  FeeStateRowCandidateV0[12]                     960
+                                                -----
+                                                4,776 bytes
+```
+
+The explicit 312-byte identity retains the Core program and experimental major
+even though the PDA owner is also checked; cross-program data cannot be mistaken
+for this Core's identity. Unused fixed-array rows are all zero. Header flags and
+reserved bytes are zero. Draft bitmaps may contain only expected indices; an
+active or later account has exactly the complete masks implied by its counts.
+
+The control ABI is frozen independently from execution:
+
+```text
+initialize_stored_authorization discriminator = 76987db8b7400e4e
+write_stored_authorization_chunk discriminator = bb97761e70f00ad6
+activate_stored_authorization discriminator = 914d2e6337527a33
+replace_stored_authorization discriminator = 5f1f92773ed93c7d
+cancel_stored_authorization discriminator = 5b1eda991f5246e7
+
+InitializeStoredAuthorizationArgsCandidateV0 {  // exactly 312 bytes
+  wire_version: u8
+  term_count: u8
+  constraint_count: u8
+  flags: u8
+  maximum_successful_fills: u32
+  identity: InlineIntentIdentityRowCandidateV0  // 80 bytes
+  market_binding_digest: [u8; 32]
+  engine_loader_state_snapshot_digest: [u8; 32]
+  fee_policy_digest: [u8; 32]
+  intent_capability_terms_root: [u8; 32]
+  credit_constraints_root: [u8; 32]
+  core_terms_root: [u8; 32]
+  intent_digest: [u8; 32]
+}
+
+StoredAuthorizationChunkHeaderCandidateV0 {     // exactly 8 bytes
+  wire_version: u8
+  chunk_kind: u8       // 0 = 136-byte term, 1 = 64-byte constraint
+  start_index: u8
+  row_count: u8        // 1..4
+  reserved: [u8; 4]
+}
+```
+
+Initialize recomputes every supplied root relationship and creates only a
+non-executable `Draft`. Every chunk instruction requires the same exact
+top-level actor authority, has exact length, writes one to four contiguous
+previously unwritten rows, and rejects overlap, gaps outside the declared count,
+unknown kinds, or nonzero padding. Activation likewise requires the actor,
+requires both bitmaps complete, recomputes all row roots and the intent digest,
+derives every initial capability-state row from the immutable term, and only
+then changes `Draft` to `Active`. The caller never supplies initial mutable
+capability or fee state.
+
+The account then tracks:
 
 ```text
 immutable
@@ -1097,8 +1294,8 @@ immutable
   maximum_successful_fills
 
 mutable
-  status = Active | Executing | Cancelled | Consumed
-  fill_sequence and successful_fill_count
+  status = Draft | Active | Executing | Cancelled | Consumed
+  fill_sequence, which is also successful_fill_count
   remaining engine debit by source
   remaining total source debit by source
   cumulative credit by recipient
@@ -1107,11 +1304,16 @@ mutable
   pending_execution_digest or zero
 ```
 
+Lifecycle bytes are exact: `Draft = 0`, `Active = 1`, `Executing = 2`,
+`Consumed = 3`, and `Cancelled = 4`. The pending digest is nonzero if and only
+if lifecycle is `Executing`; execution accepts only `Active`.
+
 Every counter increment and amount transition is checked. The accepted private
 state machine is:
 
 ```text
-Uninitialized -> Active
+Uninitialized -> Draft
+Draft -> Active | Cancelled
 Active -> Executing(pending_execution_digest)
 Executing -> Active(next fill sequence) | Consumed
 Active -> Cancelled
@@ -1141,22 +1343,28 @@ authorization is valid and still consumes one successful-fill count; a pure
 zero-effect participant is rejected. This prevents an executor from burning an
 unrelated stored authorization's fills by inserting it as a no-op participant.
 
-Creation, cancellation, and replacement are top-level actor-authorized Core
-instructions. A fill and cancellation serialize on the same writable
+Creation, chunk writing, activation, cancellation, and replacement are
+top-level actor-authorized Core instructions. A fill and cancellation serialize
+on the same writable
 authorization account: cancellation first makes the fill fail; fill first may
 commit before cancellation stops only the remainder. The protocol promises no
 cancellation priority over a transaction that lands first. Replacement never
-mutates immutable terms in place; it atomically cancels the old authorization and
-creates a different `intent_digest`, normally by a fresh authorization nonce or
-different engine-terms commitment; changing the actor also requires that new
-actor's independent top-level authorization. Cancelled and consumed accounts
-remain tombstones for this experiment and cannot be closed or recreated at
-sequence zero.
+mutates immutable terms in place. The replacement instruction accepts only a
+complete new `Draft`, then atomically cancels the old `Active` authorization and
+activates the different `intent_digest`, normally created with a fresh nonce or
+different engine-terms commitment. The old actor authorizes cancellation; if
+the actor changes, the new actor independently authorizes activation. Cancelled
+and consumed accounts remain tombstones for this experiment and cannot be
+closed or recreated at sequence zero.
 
 A token delegate may still provide the asset-program authority needed to execute
-a stored classic-SPL debit. Delegate state alone is not replay state: leftover
-delegation after a partial fill must not authorize more than the stored remaining
-amount.
+a stored classic-SPL debit. Each such source supplies the same exact
+source-specific intent-spend PDA control used by one-shot delegation. For an
+exact-delegate witness, success consumes the complete positive allowance. For a
+stored witness, an allowance may remain across fills, but Core signs only while
+the exact stored authorization is `Active` and within its remaining counters;
+cancellation, consumption, expiry, or wrong sequence prevents later signing.
+Delegate state alone is never replay or semantic authorization.
 
 ### Product-neutral partial-fill credit constraint
 
@@ -1263,6 +1471,18 @@ protected movement:
     every domain's accounted change is derived only from that domain's local
     capability deltas.
 
+After those checks, Core derives:
+
+```text
+canonical_effect_digest = H(
+  "canonical-effect-v0",
+  request_digest,
+  protected_execution_root,
+  u32_le(move_count),
+  every complete 10-byte MoveCandidateV0 in canonical order
+)
+```
+
 The source-or-destination normal form removes cycles and makes the observed
 classic-SPL gross debit equal to the canonical plan debit. An engine can express
 the same final fungible allocation by netting an intermediate account before it
@@ -1279,6 +1499,26 @@ accounted_after = accounted_before + local_credits - local_debits
 with checked arithmetic. Global conservation does not authorize a local debit.
 Raw balances must cover accounted balances before and after settlement. Raw
 donations do not change accounting.
+
+The first Core-custody authority is exact and domain-local:
+
+```text
+domain_accounting = PDA(
+  experimental Core program,
+  "domain-accounting-v0",
+  exact domain descriptor account key
+)
+```
+
+The stable descriptor-key seed intentionally survives descriptor revisions;
+the accounting account still stores and must match the current descriptor key,
+revision, PDA, and bump. That same Core-owned writable accounting control is the
+Classic-SPL transfer-authority `AccountInfo`; Core signs only the accepted
+settlement transfers with its exact PDA seeds. No separate custody authority is
+passed to the engine. Under this first profile, every domain-accounted endpoint
+is initialized non-native Classic SPL, has the accounting PDA as token owner,
+and has neither delegate nor close authority. Other custody models require a
+separate authority profile and hostile tests.
 
 Core executes each accepted classic-SPL move through one exact
 `TransferChecked` call under its source capability's validated authority. Core
@@ -1490,6 +1730,57 @@ capability. None is supplied to the engine. Missing, aliased, reordered,
 read-only liability, wrong-vault, wrong-asset, or wrong-policy components fail
 before callback.
 
+Its self-digest is typed rather than an arbitrary stored label:
+
+```text
+FeeShardDescriptorRowCandidateV0 {              // exactly 272 bytes
+  wire_version: u8
+  shard_index: u8
+  reserved: [u8; 6]
+  market_binding_digest: [u8; 32]
+  fee_policy_digest: [u8; 32]
+  fee_policy_revision: u64
+  asset_identity: [u8; 32]
+  asset_program: [u8; 32]
+  settlement_profile_digest: [u8; 32]
+  vault: [u8; 32]
+  liability_ledger: [u8; 32]
+  recipient_policy_digest: [u8; 32]
+}
+
+exact_fee_recipient_policy_digest = H(
+  "exact-fee-recipient-v0",
+  Core program,
+  u32_le(Core experimental major),
+  market_binding_digest,
+  vault,
+  asset_identity,
+  asset_program,
+  settlement_profile_digest
+)
+
+fee_shard_descriptor_digest = H(
+  "fee-shard-descriptor-v0",
+  Core program,
+  u32_le(Core experimental major),
+  complete 272-byte descriptor row
+)
+
+fee_shard_descriptor = PDA(
+  experimental Core program,
+  "fee-shard-v0",
+  market_binding_digest,
+  shard_index as one byte
+)
+```
+
+The stored bump and self-digest are excluded from the row and recomputed. The
+first recipient policy binds the exact destination and asset facts, not the
+vault's mutable token-owner authority. The vault must still be an initialized,
+non-native classic-SPL account for the exact asset, and its current lifecycle is
+committed in the protected-capability row. This policy cannot redirect a payer's
+fee to another account.
+
 Core derives the exact landing-time row and list digest:
 
 ```text
@@ -1551,11 +1842,18 @@ Core; this experiment does not claim a fee on unknowable off-Core behavior.
 The experiment uses only the selected single writable transition before
 settlement. There is no post-settlement engine callback.
 
+The opaque engine payload is bound without interpretation by Core:
+
+```text
+payload_digest = H("payload-v0", exact payload bytes)
+```
+
 The callback PDA is derived from a domain-separated digest equivalent to:
 
 ```text
 callback_seed = H(
   "callback-seed-v0",
+  Core program,
   Core experimental major,
   selected engine program,
   engine_interface_id,
@@ -1698,7 +1996,7 @@ SettlementCapabilityRowCandidateV0 {             // exactly 48 bytes
   rights_bits: u16
   domain_accounting_slot_or_none: u8
   spend_authority_control_offset_or_none: u8
-  paired_credit_capability_index_or_none: u8
+  reserved_0: u8
   reserved: [u8; 3]
   maximum_engine_debit: u64
   maximum_total_debit: u64
@@ -1735,9 +2033,11 @@ current state. A stored sequence increment is checked and reaching the private
 Private fee classes `0` and `1` mean no assessment and principal-keyed protected
 gross-debit rate. Settlement flag bit zero is the fee-funding relation; unknown
 bits fail. `intent_local_term_index_or_none` proves the exact persistent-to-global
-mapping. The domain accounting slot, source spend-authority offset, and paired
-credit index are present only when their declared role requires them and are
-otherwise `255`. Unused dependent amounts are zero. Unknown witness kinds,
+mapping. The domain accounting slot and source spend-authority offset are
+present only when their declared role requires them and are otherwise `255`.
+Credit-constraint bitmaps, resolved through the local-to-global mapping, are the
+only debit-to-credit relation; `reserved_0` and the other reserved bytes are
+zero. Unused dependent amounts are zero. Unknown witness kinds,
 authority classes, rights, fee classes, flags, nonzero reserved bytes,
 overlapping control offsets outside explicit same-direct-actor reuse,
 unreferenced rows or control accounts, and out-of-range indices fail before
@@ -1976,10 +2276,20 @@ authenticated intent terms. The 88-byte engine row carries a checked `u64`
 projection of domain accounting; a nonzero protected `u128` value that does not
 fit fails before callback rather than truncating.
 
-The request ends with exactly `payload_len` opaque bytes. Its private request
-digest is the domain-separated hash of the discriminator, complete header,
-asset rows, domain rows, intent rows, fee-policy row, context rows, and payload.
-That digest is bound by the engine receipt.
+The request ends with exactly `payload_len` opaque bytes. The central typed
+encoder produces the complete canonical CPI instruction data, including the
+discriminator, header, every typed row, and payload; the exact decoder rejects
+trailing or non-canonical bytes. Its private digest is:
+
+```text
+request_digest = H(
+  "engine-request-v0",
+  complete canonical CPI instruction data as one framed part
+)
+```
+
+No caller or engine independently reconstructs a differently partitioned hash
+preimage. The request digest is bound by the engine receipt.
 
 At the private maxima of eight assets, four domains, eight intents, 12 context
 rows, and a 128-byte payload, the complete engine instruction data is exactly:
@@ -2008,14 +2318,17 @@ EffectReceiptCandidateV0 {
   intent_set_digest: [u8; 32]
   protected_execution_root: [u8; 32]
   engine_sequence: u64
-  engine_evidence_digest: [u8; 32]
+  engine_supplied_evidence_digest: [u8; 32]
   moves: [MoveCandidateV0; move_count]
 }
 ```
 
 The fixed receipt is exactly 148 bytes. Every move is 10 bytes, so the private
-12-move maximum is 268 bytes. `flags` must be zero. Core computes the canonical
-effect digest itself after decoding and validation.
+12-move maximum is 268 bytes. `flags` must be zero, and the engine-supplied
+evidence digest must be nonzero. It is the engine's raw opaque claim, not the
+already wrapped attested digest. Core computes the canonical effect digest and
+the final engine-attested evidence digest exactly once after decoding and
+validation.
 
 The receipt deliberately contains no action, product, authorization mode,
 engine-state account, fee move, position mutation, escrow mutation, asset
