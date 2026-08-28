@@ -1,0 +1,11 @@
+[package]
+name = "engine-probe-interface"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[dependencies]
+solana-pubkey = "=3.0.0"
+solana-sha256-hasher = { version = "=3.1.0", features = ["sha2"] }

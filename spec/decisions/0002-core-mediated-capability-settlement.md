@@ -18,8 +18,9 @@ receipt. It must separate programmable economics from protected asset authority.
 Use one Core-mediated execution envelope:
 
 - a market permissionlessly selects an engine and new domains, while an existing
-  domain's own local admission rule authorizes any additional market and exact
-  engine revision;
+  domain's own local admission rule authorizes any additional market, engine
+  program, interface version, code policy, capability profile, and exact domain
+  descriptor;
 - a user authorizes exact asset, recipient, amount, fee, and expiry limits;
 - the Core invokes the engine with a reduced capability closure;
 - the Core alone executes supported protected-value movement and the mandatory
@@ -36,28 +37,43 @@ plus post-settlement commit, and an engine-generated plan.
 
 ## Honest engine boundary
 
-The engine is not a cryptographic Core signer. It is nevertheless the economic
-authorization oracle for every domain that selected it. If compromised, it may
-approve exchanges that drain or corrupt those domains while all Core transfers
-remain technically valid and conservative.
+The engine is nevertheless the economic authorization oracle for every domain
+that selected it. If compromised, it may approve exchanges that drain or corrupt
+those domains while all Core transfers remain technically valid and
+conservative.
 
-The guarantee is containment: an engine receives no protected signer, delegate,
-writable asset account, or non-participating Core domain. Its own PDA signers are
-treated as ambient authority. The Core validates the actual CPI capability
-closure, not a fictional nested-call script.
+The guarantee is containment: an engine receives no user or value-bearing Core
+signer, protected delegate, writable asset account, or non-participating Core
+domain. Its own PDA signers are treated as ambient authority. The Core validates
+the actual CPI capability closure, not a fictional nested-call script. A future
+Core callback-authentication signer is not a general certificate of Core
+approval. If evaluated for CPI composability, it must be domain-separated by
+Core major, selected engine, market or domain, exact plan digest, and callback
+phase, with replay and forwarding tests. No Core instruction or `CoreVerified`
+asset profile may accept it for value, custody, fees, administration, or
+upgrades. Arbitrary external programs may still assign meaning to a forwarded
+signer; that meaning remains opaque engine-plane risk and does not authenticate
+Core beyond the selected callback.
 
 Markets that share a liquidity domain deliberately share reserves, locks,
 economics, engine risk, and liveness risk. Domain identities include their
 controller and revision context; a namespace string alone is not isolation.
 Declaring a domain in a plan grants nothing. The Core verifies a domain-local
-participation relation among domain, market, and engine revision. A domain may
-choose an open rule; Programmable does not approve that choice.
+participation relation among its immutable descriptor, market, engine program,
+interface, code policy, and capability profile. A domain may choose an open
+rule; Programmable does not approve that choice.
 
 ## Programmability boundary
 
 Curves, auctions, orders, spreads, dynamic fees, provider economics, game state,
 and unnamed future market behavior belong to engines. The Core does not encode a
 product enum.
+
+The public Core exposes a product-neutral execution envelope, not permanent
+`swap`, `deposit`, `withdraw`, or `create_position` semantics. Provider claims
+and positions belong to the engine unless a domain deliberately selects a
+separately proven Core-native accounting and exit profile. The verbs in Probe V0
+are disposable test fixtures.
 
 Authority primitives are intentionally narrower. New ways to move protected
 value may require a side-by-side Core major and new hostile tests. This is not a
@@ -69,16 +85,21 @@ graphs, first-class external settlement drivers, direct-user-signer asset
 programs, and asynchronous intents are separate decisions. They remain product
 requirements, not unreviewed fields frozen into the first ABI.
 
-An engine can already compose arbitrary programs over its own state and PDAs.
-A first-class driver earns a Core abstraction only if experiments prove a real
-shared settlement capability and a safe authority boundary.
+An engine can compose arbitrary programs over engine-owned and externally owned
+opaque accounts. The Core binds their exact ordered metas and privileges and
+rejects protected aliases; it does not require those accounts to be engine-owned
+or pretend to understand their semantics. A first-class `CoreVerified` profile
+earns a Core abstraction only if experiments prove shared semantics and a safe
+authority boundary.
 
 ## Fees
 
 The Core-owned market record selects the mandatory protocol fee policy. Users
-authorize ceilings. The Core derives the actual assessment once, executes it
-through a supported Core-native profile, and records observed debit, fee-vault
-credit, accounted liability, and later claims separately.
+authorize ceilings. The fee leg has its own supported asset profile, funding
+authority, recipient, and maximum; it is not structurally tied to a traded input
+asset. The Core derives the actual assessment once and records observed debit,
+fee-vault credit, accounted liability, and later claims separately. A
+volume-based component is enforceable only over exact Core-observed legs.
 
 The engine and caller cannot replace the policy, select a zero fee, or redirect
 the recipient. Donations do not create fee liability. Claims cannot exceed the
@@ -99,7 +120,9 @@ asset effect is visible.
 
 Core events contain Core and market identity, engine identity, plan digest,
 participating domains, Core-verified supported-asset effects and protocol fees,
-and opaque engine digests with an explicit attested evidence class.
+and opaque engine digests with an explicit `EngineAttested` evidence class.
+External bytes or deltas do not become `CoreVerified` without an accepted exact
+settlement profile.
 
 Successful transaction status alone is not event authenticity. Indexers verify
 the emitting program and invocation context, event discriminator, and a
@@ -113,16 +136,21 @@ onchain rules. Engine failure is different: a market that requires that engine
 can stop.
 
 Persistent Core custody therefore cannot receive a universal escape claim. Each
-market must bind an exit class: no persistent custody, an exact Core-verifiable
-engine-independent claim, or disclosed engine-liveness dependence. A strong
-escape profile is required before any persistent-custody configuration is
-presented as independently withdrawable.
+domain immutably binds its custody, accounting, asset, and exit profiles: no
+persistent custody, an exact Core-verifiable engine-independent claim, or
+disclosed engine-liveness dependence. Every market admitted to that domain
+inherits the same guarantee. A strong escape profile is valid only if every
+allowed domain mutation preserves the exact Core-verifiable claim.
 
 ## Version and deployment model
 
 Core majors are separate deployments with explicit interface meaning. New
 majors coexist with old ones; clients and markets choose them explicitly. A new
 major is a surgical extension, not a silent rewrite of old market rules.
+
+An append-only signed deployment manifest identifies legitimate side-by-side
+Core program IDs and binds each to source, artifact, loader state, and its
+predecessor. The manifest is discovery evidence, not settlement authority.
 
 No production Core is made immutable until its accepted interface has hostile
 program tests, compatibility fixtures, realistic runtime measurements,
@@ -133,6 +161,8 @@ immutable or owner-compromise-safe.
 ## Deliberately not decided
 
 - public engine callback and return-data ABI;
+- a scoped CPI-callback authentication capability and its forwarding, replay,
+  phase, and alias tests;
 - stored intents, partial fills, matching, and funding delegation;
 - external settlement-driver authority and evidence;
 - Token-2022 support classes;
@@ -159,6 +189,8 @@ administrator is introduced to avoid making them.
   state or reserves.
 - **One immutable ABI can anticipate unknown Solana authorities:** new protected
   authority primitives may require a new Core major.
+- **A numeric engine revision proves code identity:** loader state and upgrade
+  policy, not a self-declared number, determine whether code can change.
 - **Future runtime proposals are current capacity:** launch design uses only
   active cluster limits.
 

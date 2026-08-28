@@ -13,3 +13,4 @@ released packages follow [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 ### Added
 
 - Initial protocol and repository boundary specifications.
+- Disposable authority-kernel experiment for the engine-boundary proofs.

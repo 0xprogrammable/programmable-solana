@@ -10,8 +10,9 @@ isolation.
 
 ## Status
 
-The protocol is in its design phase. No program from this repository is deployed
-or approved for production use.
+The protocol is in its design phase. One disposable authority-kernel experiment
+is executable locally; its wire format is not a public interface. No program
+from this repository is deployed or approved for production use.
 
 ## Principles
 

@@ -9,6 +9,12 @@ contract is encoded in an onchain program.
   does and does not control.
 - [`engine-boundary-spike.md`](engine-boundary-spike.md) defines the smallest
   experiment that must succeed before a public engine ABI is designed.
+- [`authority-kernel-spike-results.md`](authority-kernel-spike-results.md)
+  records the executable result and its non-production limits.
+- [`authority-kernel-sbf-v0.sha256`](authority-kernel-sbf-v0.sha256) pins the
+  exact canonical Ubuntu experiment binaries that CI must reproduce.
+- [`maturity-checkpoint.md`](maturity-checkpoint.md) applies a nine-category
+  maturity review to the current disposable experiment.
 - [`runtime-baseline.md`](runtime-baseline.md) pins the observed Solana limits
   and semantics that the candidate design must survive.
 - [`competitive-baseline.md`](competitive-baseline.md) records the narrow,

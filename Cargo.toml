@@ -1,0 +1,36 @@
+[workspace]
+members = [
+    "crates/engine-probe-interface",
+    "programs/core",
+    "test-programs/spike-engine",
+]
+resolver = "2"
+
+[workspace.package]
+version = "0.0.0"
+edition = "2021"
+rust-version = "1.89.0"
+license = "Apache-2.0"
+publish = false
+
+[workspace.dependencies]
+anchor-lang = "=1.1.2"
+anchor-spl = { version = "=1.1.2", default-features = false, features = ["token"] }
+litesvm = "=0.16.0"
+litesvm-cpi-tree = "=0.16.0"
+litesvm-token = "=0.16.0"
+solana-address = "=2.6.1"
+solana-keypair = "=3.1.2"
+solana-message = "=4.2.4"
+solana-native-token = "=3.0.0"
+solana-signer = "=3.0.1"
+solana-transaction = "=4.1.5"
+
+[profile.release]
+overflow-checks = true
+codegen-units = 1
+
+[profile.release.build-override]
+opt-level = 3
+incremental = false
+codegen-units = 1
