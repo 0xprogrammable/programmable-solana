@@ -1,0 +1,83 @@
+# Repository boundaries
+
+Status: Accepted
+
+## Canonical repository
+
+`0xprogrammable/programmable-solana` is the canonical repository for the
+security-critical protocol and the artifacts that must be released against it.
+It is a protocol monorepo, not a container for every Programmable product.
+
+The intended structure is introduced incrementally:
+
+```text
+programs/
+  core/                 shared settlement program
+  reference-cpmm/       one maintained example engine
+crates/
+  engine-interface/     instruction and account contract, errors, CPI helpers
+  core-client/          canonical Rust transaction and account client
+clients/
+  typescript/           canonical TypeScript client
+idl/                    reviewed public interface artifacts
+spec/                   protocol contracts and architecture decisions
+tests/
+  integration/          cross-component behavior
+  compatibility/        fixtures for every published interface version
+  adversarial/          isolation, authorization, and bypass attempts
+test-programs/           deliberately hostile programs used only by tests
+examples/                minimal integrations, never hidden protocol logic
+deployments/             append-only public release manifests
+scripts/                 deterministic development and verification helpers
+```
+
+Directories are not created until they contain maintained code, tests, or
+documentation. This keeps the tree descriptive instead of decorative.
+
+## Dependency direction
+
+The engine interface is the narrow compatibility boundary:
+
+- it may contain wire formats, account types, error codes, version identifiers,
+  and client helpers;
+- it must not contain core business logic or depend on the core program;
+- the core and reference engine may depend on it; and
+- third-party engines must be able to depend on it without importing the core
+  implementation.
+
+Generated IDLs and clients must be reproducible from reviewed source. CI will
+reject generated drift once generators exist.
+
+## Components that stay separate
+
+- The existing website remains in its current repository.
+- A production indexer and API receive a separate repository when they become an
+  independently deployed service. Canonical event and account schemas remain
+  here.
+- Community engines remain in their developers' repositories.
+- Launchpads, scanners, routers, games, and other applications are not protocol
+  packages.
+- Secrets, keypairs, RPC credentials, and private deployment configuration are
+  never committed.
+
+## When a component may split
+
+A component moves to another repository only when at least one real boundary
+exists:
+
+- an independent release cycle;
+- an independent deployment or operational owner;
+- different access controls;
+- a stable public interface that no longer requires atomic protocol changes; or
+- CI cost that cannot be isolated safely inside the monorepo.
+
+Repository size or folder count alone is not a reason to split. Any split must
+preserve immutable references between source commits, generated interfaces,
+release artifacts, and onchain deployments.
+
+## Change ownership
+
+Until a GitHub organization and multiple maintainers exist, `@0xprogrammable` is
+the only CODEOWNER. Before mainnet, ownership of the core, engine interface,
+workflows, and deployment manifests must move behind an organizational and
+multi-person review boundary.
