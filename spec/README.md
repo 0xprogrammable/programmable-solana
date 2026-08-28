@@ -11,6 +11,8 @@ contract is encoded in an onchain program.
   dependency direction, and future repository splits.
 - [`security-properties.md`](security-properties.md) lists the properties the
   implementation and tests must establish.
+- [`threat-model.md`](threat-model.md) names each trust boundary and the damage a
+  compromised actor can cause.
 - [`decisions/`](decisions/) contains architecture decisions that should not be
   changed implicitly in a code review.
 

@@ -25,7 +25,9 @@ The core is expected to:
 - bind each market to its engine, asset accounts, interface version, and fee
   configuration;
 - authenticate every account participating in settlement;
-- prevent one market from substituting or writing another market's accounts;
+- prevent one market from substituting or writing another market's core-owned
+  state or core-custodied vaults;
+- validate the engine-owned write set and any explicit shared-state capabilities;
 - constrain asset movement to the settlement authorized by the current
   transaction;
 - collect protocol fees through rules that an engine cannot bypass;
@@ -44,13 +46,15 @@ An engine is expected to:
 - define its market logic and engine-owned state;
 - validate the conditions specific to that logic;
 - return or authorize a settlement request within the core's public contract;
-- declare the interface version it implements; and
-- expose enough deterministic state for independent clients and indexers.
+- declare the interface version and writable-account capabilities it uses;
+- identify engine state that is intentionally shared across markets; and
+- expose any engine-specific semantics through an optional public schema or
+  decoder.
 
 Permissionless means a developer can deploy an engine and create a compatible
 market without approval from Programmable. It does not mean the core executes
-arbitrary native code, accepts arbitrary accounts, or transfers assets without
-validation.
+unbounded native code, grants authority over undeclared accounts, or transfers
+assets without validation.
 
 ## Outside the core trust boundary
 
@@ -68,11 +72,20 @@ Third parties may build those products independently.
 
 ## Offchain components
 
-Indexers and APIs are replaceable projections of onchain state. Their schemas
-must follow canonical account and event versions, but their databases are not
-protocol state. If every Programmable-operated offchain service disappears, a
-developer with a Solana RPC connection and the public interface must still be
-able to construct a valid transaction.
+Indexers and APIs are replaceable projections of onchain state. Every successful
+core settlement must emit a versioned envelope containing enough common data to
+identify the market, engine, assets, amounts, fees, and ordering checkpoint.
+Engine-specific meaning is decoded through optional engine schemas or plugins;
+the generic indexer does not pretend to understand arbitrary engine state.
+
+Current canonical markets and state must be discoverable from program accounts.
+An independent live indexer must be able to follow the settlement envelope and
+detect gaps. Reconstructing history that a normal RPC node has already pruned
+requires an archival ledger source and is not a protocol-liveness guarantee.
+
+Indexer databases are not protocol state. If every Programmable-operated
+offchain service disappears, a developer with a Solana RPC connection and the
+public interface must still be able to construct a valid transaction.
 
 ## Decisions that remain open
 
@@ -81,10 +94,13 @@ The following choices are deliberately not frozen by this draft:
 - whether the core invokes an engine, an engine invokes the core, or a bounded
   two-phase interaction is used;
 - the binary settlement-intent format and its maximum resource bounds;
+- the declaration and validation model for engine-owned writable accounts and
+  shared state;
 - which Solana token programs and asset behaviors the first core version
   supports;
 - how engine code identity and engine upgrades are represented;
 - how interface discovery and compatibility negotiation work;
+- the canonical settlement envelope and gap-detection mechanism;
 - the exact protocol-fee model and rounding rules; and
 - whether the first core deployment is immutable or governed by a constrained
   upgrade process.
