@@ -24,9 +24,12 @@ isolation.
 
 ## Status
 
-The protocol is in its design phase. One disposable authority-kernel experiment
-is executable locally; its wire format is not a public interface. No program
-from this repository is deployed or approved for production use.
+The protocol is in its design phase. Two disposable experiments are executable
+locally: the original authority kernel and an isolated engine-generated-output
+probe with a bounded opaque capability closure. They test narrow security and
+runtime hypotheses; neither wire format is a public interface or a generic
+settlement-plan design. No program from this repository is deployed or approved
+for production use.
 
 ## Principles
 

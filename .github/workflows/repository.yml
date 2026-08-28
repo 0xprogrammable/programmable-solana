@@ -14,8 +14,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  protocol-checks:
-    name: Protocol checks
+  repository-policy:
+    name: Repository policy
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
@@ -85,7 +85,7 @@ jobs:
         run: |
           ./scripts/check-repository.sh
           cargo fmt --all --check
-          cargo metadata --locked --no-deps > /dev/null
+          cargo metadata --locked --no-deps --format-version 1 > /dev/null
 
       - name: Build disposable SBF programs
         env:
@@ -105,3 +105,107 @@ jobs:
         run: |
           cargo clippy --workspace --all-targets --locked -- -D warnings
           cargo test --workspace --all-targets --locked
+
+  engine-generated-settlement-spike:
+    name: Engine-generated settlement spike
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install the pinned Rust toolchain
+        run: |
+          rustup toolchain install 1.96.0 \
+            --profile minimal \
+            --component rustfmt \
+            --component clippy
+
+      - name: Install the pinned Agave toolchain
+        run: |
+          readonly agave_archive="${RUNNER_TEMP}/agave-v3.1.10.tar.bz2"
+          curl -fsSL \
+            https://github.com/anza-xyz/agave/releases/download/v3.1.10/solana-release-x86_64-unknown-linux-gnu.tar.bz2 \
+            -o "${agave_archive}"
+          echo "a7205ff29bcf0f7199740225ecae2b85a28ea9668892d5ec21bd9749882984a1  ${agave_archive}" \
+            | sha256sum -c -
+          tar -xjf "${agave_archive}" -C "${RUNNER_TEMP}"
+          echo "${RUNNER_TEMP}/solana-release/bin" >> "${GITHUB_PATH}"
+
+      - name: Install the checksum-pinned SBF compiler
+        run: |
+          readonly platform_archive="${RUNNER_TEMP}/platform-tools-v1.52.tar.bz2"
+          readonly platform_dir="${RUNNER_TEMP}/platform-tools-v1.52"
+          readonly sbf_sdk="${RUNNER_TEMP}/solana-release/bin/platform-tools-sdk/sbf"
+          curl -fsSL \
+            https://github.com/anza-xyz/platform-tools/releases/download/v1.52/platform-tools-linux-x86_64.tar.bz2 \
+            -o "${platform_archive}"
+          echo "8b3861e93daf085ec12b65c4fac374d9bec4587a3de16871da6b08ab0c1d907e  ${platform_archive}" \
+            | sha256sum -c -
+          mkdir -p "${platform_dir}"
+          tar --strip-components 1 -xjf "${platform_archive}" -C "${platform_dir}"
+          # Build-only CI does not use Criterion; mark it present to prevent an
+          # unrelated benchmark dependency download from the SBF installer.
+          mkdir -p "${sbf_sdk}/dependencies/criterion"
+          ln -s "${platform_dir}" "${sbf_sdk}/dependencies/platform-tools"
+          touch "${sbf_sdk}/dependencies/platform-tools-v1.52.md"
+          touch "${sbf_sdk}/dependencies/criterion-v2.3.3.md"
+          echo "SBF_SDK_PATH=${sbf_sdk}" >> "${GITHUB_ENV}"
+          "${platform_dir}/rust/bin/rustc" --version
+
+      - name: Verify toolchain identities
+        run: |
+          rustc --version
+          solana --version
+
+      - name: Check experiment formatting and metadata
+        working-directory: experiments/engine-generated-settlement
+        run: |
+          rustc --version | grep -E '^rustc 1\.96\.0 '
+          cargo fmt --all --check
+          cargo metadata --locked --no-deps > /dev/null
+
+      - name: Build disposable engine-generated settlement programs
+        working-directory: experiments/engine-generated-settlement
+        env:
+          PROGRAMMABLE_SBF_TOOLS_PINNED: "1"
+        run: ./scripts/build-sbf.sh
+
+      - name: Verify exact engine-generated settlement artifacts
+        working-directory: experiments/engine-generated-settlement
+        run: |
+          sha256sum \
+            target/deploy/programmable_generated_settlement_core.so \
+            target/deploy/generated_plan_engine.so \
+            target/deploy/opaque_capability_probe.so
+          sha256sum --check ../../spec/engine-generated-settlement-sbf-v0.sha256
+
+      - name: Run experiment static and runtime checks
+        working-directory: experiments/engine-generated-settlement
+        env:
+          NO_DNA: "1"
+        run: |
+          cargo clippy --workspace --all-targets --locked -- -D warnings
+          cargo test --workspace --all-targets --locked
+
+  protocol-checks:
+    name: Protocol checks
+    if: ${{ always() }}
+    needs:
+      - repository-policy
+      - authority-kernel-spike
+      - engine-generated-settlement-spike
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - name: Require every protocol gate
+        env:
+          REPOSITORY_POLICY_RESULT: ${{ needs['repository-policy'].result }}
+          AUTHORITY_KERNEL_RESULT: ${{ needs['authority-kernel-spike'].result }}
+          ENGINE_GENERATED_SETTLEMENT_RESULT: ${{ needs['engine-generated-settlement-spike'].result }}
+        run: |
+          test "${REPOSITORY_POLICY_RESULT}" = "success"
+          test "${AUTHORITY_KERNEL_RESULT}" = "success"
+          test "${ENGINE_GENERATED_SETTLEMENT_RESULT}" = "success"

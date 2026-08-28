@@ -1,0 +1,48 @@
+[package]
+name = "programmable-generated-settlement-core"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "Disposable Core for the engine-generated settlement experiment"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "programmable_generated_settlement_core"
+
+[features]
+default = []
+cpi = ["no-entrypoint"]
+no-entrypoint = []
+no-log-ix-name = []
+idl-build = ["anchor-lang/idl-build", "anchor-spl/idl-build"]
+anchor-debug = []
+custom-heap = []
+custom-panic = []
+
+[dependencies]
+anchor-lang.workspace = true
+# The derive used for classic token-account initialization resolves through
+# Anchor's token-interface module, even though this experiment settles only
+# through the classic SPL Token program.
+anchor-spl = { workspace = true, features = ["token_2022"] }
+generated-settlement-probe-wire = { path = "../../crates/generated-settlement-probe-wire" }
+solana-sha256-hasher.workspace = true
+
+[dev-dependencies]
+base64.workspace = true
+litesvm.workspace = true
+litesvm-cpi-tree.workspace = true
+litesvm-token.workspace = true
+generated-plan-engine = { path = "../../test-programs/generated-plan-engine", features = ["no-entrypoint"] }
+opaque-capability-probe = { path = "../../test-programs/opaque-capability-probe", features = ["no-entrypoint"] }
+solana-keypair.workspace = true
+solana-message.workspace = true
+solana-native-token.workspace = true
+solana-signer.workspace = true
+solana-transaction = { workspace = true, features = ["wincode"] }
+wincode = "=0.5.5"
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(target_os, values("solana"))'] }
