@@ -21,8 +21,13 @@ The combined maximum-resource source and test delta is frozen by commit
 rebuilt those inputs and printed all three artifact hashes, then deliberately
 failed the exact-hash gate because the manifest still contained the predecessor
 engine hash. That discovery run did not reach the runtime-test step and is not
-reproduction proof by itself. The first fully successful run after pinning the
-new hash is the reproduction proof.
+reproduction proof by itself. Follow-up commit
+`d2fa376e74f5b9691fbc97940c71384b94674d8d`, tree
+`4a6efae810d868b40db11da665ac5b6386b853e3`, pins the new hash and this result
+record. Run
+[`33187360324`](https://github.com/0xprogrammable/programmable-solana/actions/runs/33187360324)
+rebuilt the unchanged program inputs, matched all three hashes, and passed the
+full 53-test suite. That successful run is the reproduction proof.
 
 ## Decision
 
@@ -273,7 +278,7 @@ snapshotted.
 | Fixture | Packet | Accounts | Writable | Observed compute | Max depth | Total call frames |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
 | Direct successful settlement | 716 B | 16 | 9 | 59,807–59,838 CU | 2 | 5 |
-| Nested helper CPI | 824 B | 19 | 10 | 69,751 CU | 3 | 6 |
+| Nested helper CPI | 824 B | 19 | 10 | 69,751–69,783 CU | 3 | 6 |
 | 8 opaque accounts + 128-byte payload + nested helper CPI | 1,109 B | 24 | 10 | 76,500 CU | 3 | 6 |
 | Rejected direct engine attack | 537 B | 4 | 2 | 4,711 CU | 1 | 1 |
 
@@ -281,8 +286,10 @@ At the maximum tested fixture:
 
 - packet headroom is 123 bytes against the 1,232-byte legacy packet limit;
 - locked-account headroom is 40 against the 64-account baseline;
-- compute headroom is 1,323,500 CU against 1,400,000 CU across the
-  recorded samples;
+- compute headroom is 123,500 CU against this fixture's 200,000-CU execution
+  ceiling; the same consumption is 1,323,500 CU below the active 1,400,000-CU
+  transaction maximum, which this one-instruction fixture would need to request
+  explicitly;
 - the engine CPI receives 10 accounts: its fixed prefix plus eight opaque
   positions;
 - the receipt is exactly 57 bytes, leaving 967 bytes against the 1,024-byte
