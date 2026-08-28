@@ -173,13 +173,14 @@ jobs:
           PROGRAMMABLE_SBF_TOOLS_PINNED: "1"
         run: ./scripts/build-sbf.sh
 
-      - name: Print engine-generated settlement artifact hashes
+      - name: Verify exact engine-generated settlement artifacts
         working-directory: experiments/engine-generated-settlement
         run: |
           sha256sum \
             target/deploy/programmable_generated_settlement_core.so \
             target/deploy/generated_plan_engine.so \
             target/deploy/opaque_capability_probe.so
+          sha256sum --check ../../spec/engine-generated-settlement-sbf-v0.sha256
 
       - name: Run experiment static and runtime checks
         working-directory: experiments/engine-generated-settlement

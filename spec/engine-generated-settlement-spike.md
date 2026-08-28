@@ -1,6 +1,6 @@
 # Engine-generated settlement spike
 
-Status: Implementation in progress
+Status: Implemented experiment; private non-production contract
 
 This document authorizes one disposable experiment. It does not accept a public
 engine interface, a Core account layout, a deployment artifact, or a product

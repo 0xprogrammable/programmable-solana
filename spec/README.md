@@ -14,6 +14,11 @@ public interfaces or compatibility promises.
 - [`engine-generated-settlement-spike.md`](engine-generated-settlement-spike.md)
   defines a disposable, private experiment contract for engine-generated
   settlement. It is not a public engine ABI or compatibility promise.
+- [`engine-generated-settlement-spike-results.md`](engine-generated-settlement-spike-results.md)
+  records the executable result, measured capability boundary, and unresolved
+  production gates.
+- [`engine-generated-settlement-sbf-v0.sha256`](engine-generated-settlement-sbf-v0.sha256)
+  pins the exact canonical Ubuntu binaries for that experiment.
 - [`authority-kernel-spike-results.md`](authority-kernel-spike-results.md)
   records the executable result and its non-production limits.
 - [`authority-kernel-sbf-v0.sha256`](authority-kernel-sbf-v0.sha256) pins the
