@@ -852,7 +852,7 @@ IntentCapabilityTermCandidateV0 {                // exactly 136 bytes
   reserved: [u8; 2]
   endpoint_key: [u8; 32]
   asset_binding_digest: [u8; 32]
-  accepted_domain_or_zero: [u8; 32]
+  required_domain_descriptor_digest_or_zero: [u8; 32]
   maximum_engine_debit: u64
   maximum_total_debit: u64
   minimum_credit: u64
@@ -866,12 +866,19 @@ intent_local_capability_terms_root = H(
 )
 ```
 
-Term flag bit zero is `FEE_FUNDING`; every other bit and both reserved bytes must
-be zero. Exactly one signed source local term per fee rounding group carries it,
-and its later SettlementCapability mapping must mirror it. That term's
+Term flag bit zero is `FEE_FUNDING`; bit one is
+`ALLOW_UNCONSTRAINED_STORED_DEBIT`; every other bit and both reserved bytes must
+be zero. Exactly one signed source local term per fee rounding group carries the
+fee-funding bit, and its later SettlementCapability mapping must mirror both
+recognized bits. That term's
 `maximum_protocol_fee` and `maximum_total_debit` bound collection. Each term
 binds an exact endpoint, persistent 100-byte asset-binding digest, optional
-accepted domain identity, authority facts, and bounds. It does not store an
+required domain-descriptor identity, authority facts, and bounds. A nonzero
+`required_domain_descriptor_digest_or_zero` must equal one exact authenticated
+`domain_descriptor_digest` in the landed domain-execution set; zero imposes no
+Core-level domain-membership restriction. This gives an intent an enforceable
+opt-in counterparty-domain guard without binding permissionless matching to an
+unknown future global table. It does not store an
 execution-global asset or domain index, authorization slot,
 settlement-capability index, account offset, fee-shard index, or witness kind.
 
@@ -912,6 +919,18 @@ strictly increasing set bits. A source may participate in more than one
 constraint, allowing one debit to require several independent credits without a
 single-pair bottleneck.
 
+At stored activation, every intent-funded debit is exactly one of:
+
+- present in at least one constraint bitmap with a positive numerator and valid
+  credit term; or
+- explicitly signed with `ALLOW_UNCONSTRAINED_STORED_DEBIT`.
+
+Both at once fail canonicalization. The flag is invalid for direct or
+exact-delegate witnesses, credit terms, domains, and Core-reserved fee
+destinations. This keeps intentional grants and one-sided programmable flows
+possible without turning an accidentally unconstrained reusable debit into an
+implicit default.
+
 Core derives the immutable terms root and identity exactly as follows:
 
 ```text
@@ -951,7 +970,8 @@ of those local records. No executor supplies an uncommitted Core term through
 opaque engine bytes.
 
 The local terms commit only the actor's exact funding sources, exact credit
-recipients, accepted domains, asset bindings, settlement-profile facts,
+recipients, any explicitly required domain-descriptor membership, asset
+bindings, settlement-profile facts,
 engine-debit ceilings, total source-debit ceilings including fees, fee-funding
 relation, and credit constraints. They do not commit unknown future
 counterparties or the final global settlement table. Core proves a complete,
@@ -1052,8 +1072,9 @@ fee_state_root = H(
 )
 ```
 
-Capability flag bit zero is `FEE_FUNDING`; all other bits and every reserved
-byte, including `reserved_0`, fail. Initial values
+Capability flag bit zero is `FEE_FUNDING`; bit one is the mirrored
+`ALLOW_UNCONSTRAINED_STORED_DEBIT`; all other bits and every reserved byte,
+including `reserved_0`, fail. Initial values
 must equal the immutable 136-byte term, and each local index is unique and
 contiguous. Fee-state flags and reserved bytes are zero; group digests are
 unique, and each funding local term, fee class, and maximum fee must match the
@@ -1129,27 +1150,43 @@ rather than any one table root alone.
 
 ### Direct authorization
 
-A direct actor signer authorizes exact capabilities and bounds in the current
-Core invocation. The signer and writable user asset accounts remain in the
-protected Core plane and are never forwarded to the engine. Core constructs an
-ephemeral `AuthorizationView`; no engine byte indicates that it was direct.
+A direct actor authorizes exact capabilities and bounds in the current Core
+invocation. The actor and writable user asset accounts remain in the protected
+Core plane and are never forwarded to the engine. Core constructs an ephemeral
+`AuthorizationView`; no engine byte indicates whether a wallet or program actor
+authorized it.
 
-Signer privilege inherited through CPI does not prove that the actor authorized
-the inner Core bytes. A direct witness is therefore valid only when Core proves
-both:
+Core accepts exactly two non-overlapping direct-authority shapes:
 
-1. `get_stack_height()` is the transaction-level stack height; and
-2. the fixed read-only Instructions sysvar reports the current top-level
-   instruction as this exact Core program, exact landed instruction data, exact
-   ordered account keys and requested privileges, and the exact actor meta as a
-   signer.
+1. An on-curve wallet actor is valid only when `get_stack_height()` is the
+   transaction-level stack height and the fixed read-only Instructions sysvar
+   reports the current top-level instruction as this exact Core program, exact
+   landed instruction data, exact ordered account keys and requested
+   privileges, and the exact actor meta as a signer.
+2. An off-curve program actor is valid only in one direct CPI from the current
+   top-level parent: Core's stack height is exactly transaction level plus one,
+   the Instructions sysvar's current top-level program is not Core, the actor
+   appears in that parent's effective account metas, and the actor AccountInfo
+   received by Core is a signer. The actor must not equal the callback authority
+   or any Core-derived spend, execution, accounting, fee, or control authority
+   participating in the invocation. At this exact depth, an off-curve signer
+   could only have been produced by the immediate top-level program's
+   `invoke_signed`, so that program is the actor's authorization policy.
 
-A direct witness through a router or any other CPI fails before the engine runs.
-The same top-level-only rule applies to Core instructions that create, cancel, or
-replace a stored authorization and to a canonical Core delegate-approval helper
-when they rely on an actor signer. Direct authorization is authorization for one
-signed invocation, not a stateful one-shot nonce claim. Routed settlement uses an
-exact delegate or stored authorization instead.
+Solana's Instructions sysvar does not expose CPI instruction bytes or an
+authenticated immediate-caller record. Core therefore never describes the
+program-actor branch as an exact landed-CPI-byte proof. Any nested router,
+inherited off-curve signer, callback reentry, on-curve signer through CPI, or
+arbitrary deeper call fails before the engine runs. Multi-hop routing uses an
+exact delegate or stored authorization; a future multi-hop program-actor path
+requires a distinct authenticated adapter protocol rather than weakening this
+rule.
+
+The same dual wallet/program-actor rule applies to Core instructions that
+create, write, activate, cancel, or replace a stored authorization and to the
+canonical Core delegate-approval helper when they rely on an actor. Direct
+authorization is authorization for one invocation, not a stateful one-shot
+nonce claim.
 
 The experiment may also retain the predecessor's exact one-shot classic-SPL
 delegate as a direct or routed one-shot fixture. Delegate amount alone is replay
@@ -1170,10 +1207,10 @@ intent_spend_authority = PDA(
 )
 ```
 
-The canonical top-level approval helper has discriminator `04cf33c35d503375`
+The canonical approval helper has discriminator `04cf33c35d503375`
 and exactly 40 argument bytes: `intent_digest: [u8; 32]` followed by nonzero
-`amount: u64`. It rejects trailing data and proves the complete top-level actor
-call before issuing Classic SPL `ApproveChecked`.
+`amount: u64`. It rejects trailing data and proves the complete direct wallet or
+program-actor call before issuing Classic SPL `ApproveChecked`.
 
 For every delegated source, the token owner must equal the intent actor, the
 delegate must equal that source's exact intent-spend authority, its positive
@@ -1275,8 +1312,9 @@ StoredAuthorizationChunkHeaderCandidateV0 {     // exactly 8 bytes
 ```
 
 Initialize recomputes every supplied root relationship and creates only a
-non-executable `Draft`. Every chunk instruction requires the same exact
-top-level actor authority, has exact length, writes one to four contiguous
+non-executable `Draft`. Every chunk instruction requires the same exact direct
+wallet or program-actor authority defined above, has exact length, writes one to
+four contiguous
 previously unwritten rows, and rejects overlap, gaps outside the declared count,
 unknown kinds, or nonzero padding. Activation likewise requires the actor,
 requires both bitmaps complete, recomputes all row roots and the intent digest,
@@ -1321,7 +1359,11 @@ Active -> Cancelled
 
 Before the untrusted callback, Core validates every participating authorization
 against the caller's expected sequence and the recomputed pre-state view, then
-marks all of them `Executing` with one exact pending execution digest. It does
+computes the canonical engine request and marks all of them `Executing` with
+`pending_execution_digest = request_digest`. Core serializes every participating
+state transition before the untrusted CPI; an in-memory-only flag is
+insufficient against reentry. After return, the pending digest must remain
+byte-identical. Core does
 not decrement amounts or advance cumulative fee state before the callback,
 because the engine has not returned the actual moves. After the receipt, Core
 derives exact per-authorization moves and fees from the immutable pre-state,
@@ -1344,8 +1386,8 @@ zero-effect participant is rejected. This prevents an executor from burning an
 unrelated stored authorization's fills by inserting it as a no-op participant.
 
 Creation, chunk writing, activation, cancellation, and replacement are
-top-level actor-authorized Core instructions. A fill and cancellation serialize
-on the same writable
+direct wallet- or program-actor-authorized Core instructions. A fill and
+cancellation serialize on the same writable
 authorization account: cancellation first makes the fill fail; fill first may
 commit before cancellation stops only the remainder. The protocol promises no
 cancellation priority over a transaction that lands first. Replacement never
@@ -1561,7 +1603,9 @@ fee_policy_digest = H(
 ```
 
 Flags and reserved bytes are zero. The only accepted rounding modes are the
-explicit floor and ceiling values exercised below.
+explicit floor and ceiling values exercised below. This accepted rate profile
+requires `0 < rate_numerator <= nonzero_denominator`; a later policy may choose
+another bounded range only through a new explicit profile.
 
 A rate assessment first derives the immutable fee principal:
 
@@ -1605,12 +1649,21 @@ Endpoint key, local or global capability index, authorization slot, fee-shard
 index, and account offset are not part of the rounding-group identity. Basis is
 aggregated across every source capability in the group, so splitting one
 principal's basis across source accounts cannot reset floor or ceiling rounding.
-Exactly one signed local source term and its mapped settlement capability must
-carry the fee-funding flag for each nonzero-fee principal/group. That collection
-relation is validated separately from the basis key and its maximum protocol-fee
-and total-debit bounds. It intentionally omits global capability and
-authorization indices; the assessment also binds `protected_execution_root`,
-which commits the signed local mapping and exact shard and vault closure.
+Every intent-funded debit in this first profile has the gross-debit-rate fee
+class; a caller cannot mark a user source `NONE` to remove it from basis. For
+each declared principal/asset/program/profile/policy group, exactly one signed
+local source term and its mapped settlement capability carries the fee-funding
+flag, a valid shard, and positive `maximum_protocol_fee`. Other sources in the
+same group retain the rate class but have no shard, zero fee ceiling, and
+`maximum_total_debit == maximum_engine_debit`. The funding source may set a
+tighter combined total than the sum of its independent maxima: Core requires
+`maximum_total_debit >= maximum_engine_debit`,
+`maximum_protocol_fee <= maximum_total_debit`, actual fee within the fee ceiling,
+and actual engine debit plus fee within the total ceiling. The collection
+relation is validated separately from the basis key. It intentionally omits
+global capability and authorization indices; the assessment also binds
+`protected_execution_root`, which commits the signed local mapping and exact
+shard and vault closure.
 
 The basis excludes every protocol-fee move. No engine verb, product label,
 caller flag, receipt claim, spread, reserve growth, auction surplus, or opaque
@@ -2031,8 +2084,9 @@ authority controls. Direct and exact-delegate snapshots require
 current state. A stored sequence increment is checked and reaching the private
 `u32` ceiling makes the authorization terminal rather than wrapping.
 Private fee classes `0` and `1` mean no assessment and principal-keyed protected
-gross-debit rate. Settlement flag bit zero is the fee-funding relation; unknown
-bits fail. `intent_local_term_index_or_none` proves the exact persistent-to-global
+gross-debit rate. Settlement flag bit zero is the fee-funding relation and bit
+one is the stored-only explicit unconstrained-debit relation; unknown bits fail.
+`intent_local_term_index_or_none` proves the exact persistent-to-global
 mapping. The domain accounting slot and source spend-authority offset are
 present only when their declared role requires them and are otherwise `255`.
 Credit-constraint bitmaps, resolved through the local-to-global mapping, are the
@@ -2132,10 +2186,13 @@ use address lookup tables, but resolution cannot change this effective order or
 security identity.
 
 For every direct witness and actor-authorized control instruction, Core also
-parses account 5 with the checked Instructions-sysvar API, proves transaction
-stack height, and matches the current top-level program, bytes, ordered account
-keys, requested privileges, and actor signer. A routed or otherwise CPI-invoked
-direct witness fails even if signer privilege was inherited.
+parses account 5 with the checked Instructions-sysvar API and applies the exact
+dual authority rule above. The wallet branch proves transaction-root Core bytes,
+ordered account keys, requested privileges, and signer meta. The program branch
+proves one direct CPI from the top-level parent, off-curve signer authority,
+parent-meta presence, and protected-authority exclusions without claiming that
+the sysvar exposes inner CPI bytes. Nested routing or inherited signer privilege
+fails.
 
 `expected_engine_sequence` is executor-selected freshness and is not silently
 treated as a user-authorized economic term. Every intent still has its own
@@ -2599,13 +2656,19 @@ as an accepted product policy.
 Tests cover:
 
 - equivalent direct, exact delegated, stored, partial, and multi-intent paths;
-- a direct witness at transaction level and rejection through a router or any
-  CPI even when the actor signer is inherited;
+- an on-curve direct witness at transaction level, an off-curve actor through
+  exactly one direct top-level-program CPI, and rejection of the same signer
+  through a nested router or callback;
+- rejection of an on-curve signer through CPI, an off-curve transaction-root
+  pseudo-signer, a program actor absent from the top-level parent's metas, and
+  every callback, spend, execution, accounting, fee, or control PDA substituted
+  as the actor;
 - one malicious router changing recipient or amount and attempting two Core
   calls under one inherited signer;
 - wrong Instructions sysvar, current instruction index, Core program, landed
   bytes, ordered meta, requested privilege, or actor signer;
-- top-level-only create, cancel, replacement, and canonical delegate helper;
+- dual-rule actor-authorized create, write, activate, cancel, replacement, and
+  canonical delegate helper, including nested-CPI rejection;
 - persistent 136-byte capability terms and 64-byte credit constraints rejecting
   any global index, account offset, witness discriminator, duplicate local index,
   non-canonical debit group, or unmapped local term;
@@ -2881,9 +2944,10 @@ following:
    Extend liveness/resource denial rather than passing as a public policy.
 11. Wrong receipt setters, malformed plans, late transfer or fee failures, and
     resource exhaustion leave no partial account-state transition.
-12. Top-level direct, direct exact-delegate, routed exact-delegate, and stored
-    paths from cloned authorized state produce the same semantic outcome and
-    evidence classes without treating inherited signer privilege as intent.
+12. Wallet-direct, direct program-actor, direct exact-delegate, routed
+    exact-delegate, and stored paths from cloned authorized state produce the
+    same semantic outcome and evidence classes without treating an inherited
+    signer from a nested call as intent.
 13. The reduced controlled case retains the declared packet, lock, compute,
     stack, trace, and return-data headroom under the pinned active runtime; the
     1,424-byte Cartesian top-level envelope fails as explicitly predicted.
