@@ -1,10 +1,15 @@
 # Engine boundary spike
 
-Status: Draft experiment plan; first authority variant implemented
+Status: Draft architecture record; all three callback variants measured
 
-The result of the first caller-supplied, pre-settlement variant is recorded in
-[`authority-kernel-spike-results.md`](authority-kernel-spike-results.md). The
-public callback and engine ABI remain undecided.
+The caller-supplied authority kernel, engine-generated settlement, and both
+routed callback timings have now been implemented as isolated experiments. The
+results are recorded in [`authority-kernel-spike-results.md`](authority-kernel-spike-results.md),
+[`engine-generated-settlement-spike-results.md`](engine-generated-settlement-spike-results.md),
+and [`routed-callback-auth-spike-results.md`](routed-callback-auth-spike-results.md).
+Candidate A, one writable transition before settlement, is selected only for
+the next private architecture gate. The public callback and engine ABI remain
+undecided.
 
 This document defines the smallest executable experiment needed before a public
 Programmable engine ABI is designed. Names and structures here are descriptive,
@@ -238,8 +243,8 @@ from an engine are not canonical evidence.
 
 ## Engine callback variants to measure
 
-The experiment plan compares these variants behind disposable test interfaces;
-only the first is implemented today:
+The experiments compare these variants behind disposable test interfaces; all
+three have now been measured:
 
 1. one writable `validate_and_transition` CPI before settlement;
 2. read-only validation before settlement plus a writable commit after all asset
@@ -251,9 +256,11 @@ exists to test whether downstream callbacks can invalidate earlier engine state.
 Solana return data is read immediately after its setter's final nested CPI and
 is treated as authenticated bytes, not proof of economic truth.
 
-The chosen public shape is decided by measured safety, compute, account count,
-packet size, and engine ergonomics. `prepare`, `commit`, receipt structs, and
-return-data formats are not accepted by this document.
+The private comparison selects the single writable pre-settlement transition
+for the next architecture gate because the two-phase alternative added a frame
+and compute without reducing authority in the controlled fixture. That result
+does not accept a public shape. `prepare`, `commit`, receipt structs, and
+return-data formats remain disposable experiment bytes.
 
 ## Five first-stage proofs
 

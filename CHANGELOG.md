@@ -14,3 +14,11 @@ released packages follow [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 - Initial protocol and repository boundary specifications.
 - Disposable authority-kernel experiment for the engine-boundary proofs.
+- Isolated engine-generated-settlement experiment with exact SBF reproduction
+  evidence and measured capability limits.
+- Isolated routed-callback-authentication experiment comparing one-transition
+  and prepare/commit timing through direct and permissionless-routed execution.
+- Candidate A, one writable transition before settlement, selected for the next
+  private generic effect/capability gate without accepting a public ABI.
+- Draft developer contract, fee constitution, current next-gate maturity
+  checkpoint, and generic effect/capability experiment contract.

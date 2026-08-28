@@ -1,12 +1,15 @@
 # Code maturity checkpoint
 
-Status: Draft assessment of the disposable authority-kernel experiment
+Status: Historical draft assessment of the first authority-kernel experiment
 
 Date: 2026-08-28
 
-This checkpoint applies the Trail of Bits nine-category maturity model to the
-current experiment. It is not a security audit and must not be generalized to a
-future DEX implementation.
+This checkpoint applies the Trail of Bits nine-category maturity model only to
+the first authority-kernel experiment. It predates the engine-generated and
+routed-callback experiments, is preserved as historical evidence, and must not
+be read as the current repository score. The current next-gate assessment is in
+[`next-gate-maturity-checkpoint.md`](next-gate-maturity-checkpoint.md). It is not
+a security audit and must not be generalized to a future DEX implementation.
 
 ## Summary
 

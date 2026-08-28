@@ -150,7 +150,9 @@ combined cases establish:
 - equivalent direct and permissionless-routed intent digests, execution
   digests, economics, protected state, and engine state from cloned initial
   ledgers;
-- no user account or signer in the routed execution closure;
+- no user authority account or inherited user signature in the routed
+  execution closure; the writable user token source and destination remain in
+  the Core account closure because Core settles against them;
 - top-level-only canonical authorization, equivalent direct owner approval,
   wrong-owner rejection, explicit revoke, exact lower/upper delegate bounds,
   one-shot consumption, post-success replay rejection, and atomic double-call

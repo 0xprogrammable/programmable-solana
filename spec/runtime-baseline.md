@@ -11,7 +11,8 @@ tested against.
 
 - Mainnet genesis `5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d` reported
   `solana-core 4.2.1`, feature set `565236538`, at finalized slot `442328231`
-  during this review.
+  during the first observation and slot `442401233` during the final
+  revalidation.
 - The matching Agave v4.2.1 source baseline is commit
   `c4b48df969a9e4f121e14a389bd7bec34c752507`.
 - Current behavior was compared against the official Solana core, transaction,
@@ -33,11 +34,14 @@ the release gate.
 | Instruction trace | 64 executed instructions | Fan-out and callbacks are bounded independently of stack depth |
 | Return data | 1,024 bytes | Any return data or receipt must fit and be read immediately |
 | CPI instruction data | 10,240 bytes | Large opaque plans belong in authenticated accounts or hashes |
-| CPI account infos | 128 under the current documented path | The transaction account-lock limit is still the tighter launch constraint |
+| CPI account infos | 255 with active SIMD-0339 | Positional entries may repeat; the 64 unique transaction-account locks remain tighter |
 
 Transaction v1, a 4,096-byte message, 128 locked accounts, a deeper CPI stack,
-and other proposed limits are not assumed until the relevant features are active
-on the deployment cluster and compatibility tests pass.
+loader-v4, and other proposed limits are not assumed until the relevant
+features are active on the deployment cluster and compatibility tests pass.
+Transaction v1 remains inactive on mainnet, devnet, and testnet at this
+observation. Readers should already tolerate version 1, but planners must emit
+legacy or v0 transactions only.
 
 The disposable spike currently builds with platform tools v1.52 and the legacy
 SBF syscall path. SBPFv3 is not an implicit upgrade: any later migration needs a
@@ -63,6 +67,10 @@ suite before any deployment or finalization on an activation-capable cluster.
 - Return data is one last-writer-wins slot and is cleared for a new invocation.
   A receipt setter must write after its final nested CPI and its caller must read
   immediately.
+- The Instructions sysvar exposes only top-level message instructions, not
+  inner CPIs, the transaction version, or a transaction-v1 message config.
+  Security must not depend on scanning ComputeBudget instructions or finding a
+  CPI-routed Core invocation in that sysvar.
 
 These rules justify a capability closure rather than a fictional nested-call
 allowlist.
@@ -119,11 +127,14 @@ Before any devnet release candidate and again before mainnet:
 ## Primary references
 
 - [Solana transactions](https://solana.com/docs/core/transactions)
+- [Transaction v1 activation status](https://solana.com/upgrades/larger-transaction-sizes)
 - [Transaction structure](https://solana.com/docs/core/transactions/transaction-structure)
-- [CPI execution and privileges](https://solana.com/docs/core/cpi/cpi-execution)
+- [CPI execution, privileges, and active limits](https://solana.com/docs/core/cpi)
+- [CPI cost model](https://solana.com/docs/core/cpi/cpi-cost-model)
 - [Compute budget](https://solana.com/docs/core/fees/compute-budget)
 - [Program execution and return data](https://solana.com/docs/core/programs/program-execution)
 - [Instruction introspection](https://solana.com/docs/core/instructions/instruction-introspection)
+- [Loaded transaction data accounting (SIMD-0186)](https://github.com/solana-foundation/solana-improvement-documents/blob/main/proposals/0186-loaded-transaction-data-size-specification.md)
 - [Token extensions](https://solana.com/docs/tokens/extensions)
 - [Transfer-hook integration](https://solana.com/docs/tokens/extensions/transfer-hook-integration)
 - [Pinned Agave source](https://github.com/anza-xyz/agave/tree/c4b48df969a9e4f121e14a389bd7bec34c752507)

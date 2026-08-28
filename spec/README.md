@@ -9,6 +9,12 @@ public interfaces or compatibility promises.
 
 - [`protocol-boundaries.md`](protocol-boundaries.md) defines what the protocol
   does and does not control.
+- [`developer-contract.md`](developer-contract.md) separates the candidate
+  onchain contract, codecs, clients, and permissionless discovery metadata
+  without accepting public ABI bytes.
+- [`fee-constitution.md`](fee-constitution.md) defines which fee claims a
+  generic Core can honestly enforce and the accounting gates required before a
+  fee interface is accepted.
 - [`engine-boundary-spike.md`](engine-boundary-spike.md) defines the smallest
   experiment that must succeed before a public engine ABI is designed.
 - [`engine-generated-settlement-spike.md`](engine-generated-settlement-spike.md)
@@ -28,12 +34,18 @@ public interfaces or compatibility promises.
   evidence, and unresolved production gates.
 - [`routed-callback-auth-sbf-v0.sha256`](routed-callback-auth-sbf-v0.sha256)
   pins the four canonical Ubuntu binaries that CI must reproduce.
+- [`generic-effect-capabilities-spike.md`](generic-effect-capabilities-spike.md)
+  defines the next private falsification gate for a product-neutral protected
+  effect graph and a separate opaque engine capability plane.
 - [`authority-kernel-spike-results.md`](authority-kernel-spike-results.md)
   records the executable result and its non-production limits.
 - [`authority-kernel-sbf-v0.sha256`](authority-kernel-sbf-v0.sha256) pins the
   exact canonical Ubuntu experiment binaries that CI must reproduce.
-- [`maturity-checkpoint.md`](maturity-checkpoint.md) applies a nine-category
-  maturity review to the current disposable experiment.
+- [`maturity-checkpoint.md`](maturity-checkpoint.md) preserves the historical
+  nine-category review of the first authority-kernel experiment.
+- [`next-gate-maturity-checkpoint.md`](next-gate-maturity-checkpoint.md) applies
+  the same framework to the complete three-experiment evidence before the
+  generic effect/capability gate.
 - [`runtime-baseline.md`](runtime-baseline.md) pins the observed Solana limits
   and semantics that the candidate design must survive.
 - [`competitive-baseline.md`](competitive-baseline.md) records the narrow,
