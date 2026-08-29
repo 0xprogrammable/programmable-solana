@@ -1,0 +1,26 @@
+[package]
+name = "generic-effect-engine-probe"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "Disposable configurable engine for the generic effect capability experiment"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "generic_effect_engine_probe"
+
+[features]
+default = []
+no-entrypoint = []
+custom-heap = []
+custom-panic = []
+
+[dependencies]
+anchor-lang.workspace = true
+callback-capability-probe = { path = "../callback-capability-probe", features = ["no-entrypoint"] }
+generic-effect-private-wire = { path = "../../crates/generic-effect-private-wire" }
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(target_os, values("solana"))'] }

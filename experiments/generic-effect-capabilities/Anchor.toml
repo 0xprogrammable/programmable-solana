@@ -1,0 +1,28 @@
+skip_local_validator = true
+
+[toolchain]
+anchor_version = "1.1.2"
+solana_version = "3.1.10"
+
+[features]
+resolution = true
+skip-lint = false
+
+[workspace]
+members = [
+    "programs/generic-effect-core",
+    "test-programs/effect-engine-probe",
+    "test-programs/replacement-effect-engine-probe",
+    "test-programs/hostile-router-probe",
+    "test-programs/callback-capability-probe",
+]
+
+[programs.localnet]
+programmable_generic_effect_core = "3mg7sM6RFEBHiiFotFNfvteH1WdFcc9cujKuPaqZdfDz"
+generic_effect_engine_probe = "3qbR1eZRqXUWroWKKYhbDmR3FfqTHfqSU8zZSxtANzYh"
+replacement_effect_engine_probe = "3qbR1eZRqXUWroWKKYhbDmR3FfqTHfqSU8zZSxtANzYh"
+hostile_router_probe = "3uWi9x2SRpmjztkpkr2WWeBoVq3exjXG2YfDWLvm8KsQ"
+callback_capability_probe = "3yS1JFVT284y8z1LC9MRoWxZjzFrdoD5axKsZiyMsfC7"
+
+[scripts]
+test = "cargo test --workspace --all-targets --locked"

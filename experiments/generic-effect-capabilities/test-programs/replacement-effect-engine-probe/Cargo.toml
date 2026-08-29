@@ -1,0 +1,26 @@
+[package]
+name = "replacement-effect-engine-probe"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "Disposable replacement ELF for loader-identity tests in the generic effect experiment"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "replacement_effect_engine_probe"
+
+[features]
+default = []
+no-entrypoint = []
+custom-heap = []
+custom-panic = []
+
+[dependencies]
+anchor-lang.workspace = true
+generic-effect-private-wire = { path = "../../crates/generic-effect-private-wire" }
+generic-effect-engine-probe = { path = "../effect-engine-probe", features = ["no-entrypoint"] }
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(target_os, values("solana"))'] }
