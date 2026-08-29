@@ -100,7 +100,7 @@ The manifest was checked from the root of the detached exact-source worktree wit
 
 ```sh
 shasum -a 256 -c \
-  /Users/hazar/Documents/Codex/2026-08-27/wei/programmable-solana/spec/generic-effect-capabilities-sbf-v0.sha256
+  spec/generic-effect-capabilities-sbf-v0.sha256
 ```
 
 All five paths returned `OK`.

@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - main
+      - spike/generic-effect-capabilities
 
 permissions:
   contents: read
@@ -26,6 +27,29 @@ jobs:
 
       - name: Check repository policy
         run: ./scripts/check-repository.sh
+
+  protocol-lock:
+    name: Portable Protocol lock
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Check out the exact portable Protocol commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: programmablehq/PROGRAMMABLE-PROTOCOL
+          ref: 334bb26703a4dab18ce0fca8485c6275a879933a
+          path: portable-protocol
+          persist-credentials: false
+
+      - name: Verify the portable Protocol lock and rejection paths
+        env:
+          PROGRAMMABLE_PROTOCOL_ROOT: ${{ github.workspace }}/portable-protocol
+        run: python3 scripts/verify-protocol-lock.py --self-test
 
   authority-kernel-spike:
     name: Authority kernel spike
@@ -275,25 +299,103 @@ jobs:
           cargo clippy --workspace --all-targets --locked -- -D warnings
           cargo test --workspace --all-targets --locked
 
+  generic-effect-capabilities-spike:
+    name: Generic effect capabilities spike
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install the pinned Rust toolchain
+        run: |
+          rustup toolchain install 1.96.0 \
+            --profile minimal \
+            --component rustfmt \
+            --component clippy
+
+      - name: Install the pinned Agave toolchain
+        run: |
+          readonly agave_archive="${RUNNER_TEMP}/agave-v3.1.10.tar.bz2"
+          curl -fsSL \
+            https://github.com/anza-xyz/agave/releases/download/v3.1.10/solana-release-x86_64-unknown-linux-gnu.tar.bz2 \
+            -o "${agave_archive}"
+          echo "a7205ff29bcf0f7199740225ecae2b85a28ea9668892d5ec21bd9749882984a1  ${agave_archive}" \
+            | sha256sum -c -
+          tar -xjf "${agave_archive}" -C "${RUNNER_TEMP}"
+          echo "${RUNNER_TEMP}/solana-release/bin" >> "${GITHUB_PATH}"
+
+      - name: Install the checksum-pinned SBF compiler
+        run: |
+          readonly platform_archive="${RUNNER_TEMP}/platform-tools-v1.52.tar.bz2"
+          readonly platform_dir="${RUNNER_TEMP}/platform-tools-v1.52"
+          readonly sbf_sdk="${RUNNER_TEMP}/solana-release/bin/platform-tools-sdk/sbf"
+          curl -fsSL \
+            https://github.com/anza-xyz/platform-tools/releases/download/v1.52/platform-tools-linux-x86_64.tar.bz2 \
+            -o "${platform_archive}"
+          echo "8b3861e93daf085ec12b65c4fac374d9bec4587a3de16871da6b08ab0c1d907e  ${platform_archive}" \
+            | sha256sum -c -
+          mkdir -p "${platform_dir}"
+          tar --strip-components 1 -xjf "${platform_archive}" -C "${platform_dir}"
+          # Build-only CI does not use Criterion; mark it present to prevent an
+          # unrelated benchmark dependency download from the SBF installer.
+          mkdir -p "${sbf_sdk}/dependencies/criterion"
+          ln -s "${platform_dir}" "${sbf_sdk}/dependencies/platform-tools"
+          touch "${sbf_sdk}/dependencies/platform-tools-v1.52.md"
+          touch "${sbf_sdk}/dependencies/criterion-v2.3.3.md"
+          echo "SBF_SDK_PATH=${sbf_sdk}" >> "${GITHUB_ENV}"
+          "${platform_dir}/rust/bin/rustc" --version
+
+      - name: Verify toolchain identities
+        run: |
+          rustc --version | grep -E '^rustc 1\.96\.0 '
+          solana --version | grep -E '^solana-cli 3\.1\.10 '
+          cargo build-sbf --version | grep -E '^solana-cargo-build-sbf 3\.1\.10$'
+
+      - name: Run the complete generic-effect experiment gate
+        working-directory: experiments/generic-effect-capabilities
+        env:
+          NO_DNA: "1"
+          PROGRAMMABLE_SBF_TOOLS_PINNED: "1"
+        run: ./scripts/check.sh
+
+      - name: Verify exact generic-effect SBF artifacts
+        run: |
+          sha256sum \
+            experiments/generic-effect-capabilities/target/deploy/programmable_generic_effect_core.so \
+            experiments/generic-effect-capabilities/target/deploy/generic_effect_engine_probe.so \
+            experiments/generic-effect-capabilities/target/deploy/replacement_effect_engine_probe.so \
+            experiments/generic-effect-capabilities/target/deploy/hostile_router_probe.so \
+            experiments/generic-effect-capabilities/target/deploy/callback_capability_probe.so
+          sha256sum --check spec/generic-effect-capabilities-sbf-v0.sha256
+
   protocol-checks:
     name: Protocol checks
     if: ${{ always() }}
     needs:
       - repository-policy
+      - protocol-lock
       - authority-kernel-spike
       - engine-generated-settlement-spike
       - routed-callback-auth-spike
+      - generic-effect-capabilities-spike
     runs-on: ubuntu-24.04
     timeout-minutes: 2
     steps:
       - name: Require every protocol gate
         env:
           REPOSITORY_POLICY_RESULT: ${{ needs['repository-policy'].result }}
+          PROTOCOL_LOCK_RESULT: ${{ needs['protocol-lock'].result }}
           AUTHORITY_KERNEL_RESULT: ${{ needs['authority-kernel-spike'].result }}
           ENGINE_GENERATED_SETTLEMENT_RESULT: ${{ needs['engine-generated-settlement-spike'].result }}
           ROUTED_CALLBACK_AUTH_RESULT: ${{ needs['routed-callback-auth-spike'].result }}
+          GENERIC_EFFECT_CAPABILITIES_RESULT: ${{ needs['generic-effect-capabilities-spike'].result }}
         run: |
           test "${REPOSITORY_POLICY_RESULT}" = "success"
+          test "${PROTOCOL_LOCK_RESULT}" = "success"
           test "${AUTHORITY_KERNEL_RESULT}" = "success"
           test "${ENGINE_GENERATED_SETTLEMENT_RESULT}" = "success"
           test "${ROUTED_CALLBACK_AUTH_RESULT}" = "success"
+          test "${GENERIC_EFFECT_CAPABILITIES_RESULT}" = "success"
