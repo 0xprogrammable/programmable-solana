@@ -83,10 +83,9 @@ Neither warning changes the non-release disposition.
 | npm | 11.16.0 |
 | pnpm | 11.24.0 |
 
-## Exact clean-build SBF artifacts
+## Exact clean-build macOS SBF artifacts
 
-The checksum manifest is
-[`generic-effect-capabilities-sbf-v0.sha256`](generic-effect-capabilities-sbf-v0.sha256).
+The detached source build on the workstation produced these local artifacts:
 
 | Artifact | Bytes | SHA-256 |
 | --- | ---: | --- |
@@ -96,14 +95,30 @@ The checksum manifest is
 | `hostile_router_probe.so` | 140,088 | `b82d03c33420a7c8913c5247ba5d0ac6e6b954504542aaf1dacc38475b3f68b5` |
 | `callback_capability_probe.so` | 161,312 | `693fecf8af9e79f494366611c79624ade1f4c52e8dd35fe28de42021f0e65589` |
 
-The manifest was checked from the root of the detached exact-source worktree with:
+These hashes are local macOS evidence, not the repository's canonical Ubuntu
+experiment artifacts.
 
-```sh
-shasum -a 256 -c \
-  spec/generic-effect-capabilities-sbf-v0.sha256
-```
+## Canonical Ubuntu 24.04 SBF artifacts
 
-All five paths returned `OK`.
+GitHub Actions run
+[`33257222521`](https://github.com/programmablehq/PROGRAMMABLE-DEX-SOLANA/actions/runs/33257222521)
+built the unchanged experiment source with the checksum-pinned Linux Agave
+3.1.10 and platform-tools v1.52 environment. Its complete experiment gate,
+including all 215 tests, passed. The first run then failed only because the
+manifest still contained the macOS hashes; that failure printed the independent
+Ubuntu values below:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `programmable_generic_effect_core.so` | `a86be3c52c5b509250c92405d42037d8b2ed16f997c93e2dd1a6df2278a5e6fa` |
+| `generic_effect_engine_probe.so` | `8b94bcffeed686fa14b5eb8027a55a840ab27466780aabf45614bb6ee044d466` |
+| `replacement_effect_engine_probe.so` | `c1b8656b8a226012d8a52a0c483a83c93901d44288e1365e70c82c6e2a86cacb` |
+| `hostile_router_probe.so` | `20f3a43bd773f68faa063fea611d8b79ce3dc3ddd832cd80af232ab8368ead1e` |
+| `callback_capability_probe.so` | `77af86d90b08faa556a449434be426864e9cd279bb68f3a9a2d6c0cd0be908e2` |
+
+[`generic-effect-capabilities-sbf-v0.sha256`](generic-effect-capabilities-sbf-v0.sha256)
+pins those Ubuntu artifacts. The cross-operating-system difference means this
+experiment is environment-pinned, not platform-independent reproducibility.
 
 ## Security falsification findings
 

@@ -30,7 +30,7 @@ custody, liquidity, fee accounting, addresses, or security evidence.
 
 ## Status
 
-The protocol is in its design phase. Three disposable experiments are
+The protocol is in its design phase. Four disposable experiments are
 executable locally: the original authority kernel, an isolated
 engine-generated-output probe, and an isolated routed-callback-authentication
 probe. The third experiment selects one pre-settlement writable transition over

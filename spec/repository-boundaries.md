@@ -64,6 +64,7 @@ change. The current isolated workspaces are:
 ```text
 experiments/engine-generated-settlement/   disposable generated-output probe
 experiments/routed-callback-auth/           disposable routed-authentication probe
+experiments/generic-effect-capabilities/    disposable generic-capability probe
 ```
 
 ## Dependency direction
