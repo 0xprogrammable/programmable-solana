@@ -4,7 +4,7 @@ Status: Accepted
 
 ## Canonical repository
 
-`0xprogrammable/programmable-solana` is the canonical repository for the
+`programmablehq/PROGRAMMABLE-DEX-SOLANA` is the canonical repository for the
 security-critical protocol and the artifacts that must be released against it.
 It is a protocol monorepo, not a container for every Programmable product.
 
@@ -108,8 +108,8 @@ release artifacts, and onchain deployments.
 
 ## Change ownership
 
-Until a GitHub organization and multiple maintainers exist, `@0xprogrammable` is
-the only CODEOWNER. Exploratory work may begin under that boundary, but no
+Within the `programmablehq` organization, `@hazarxyz` is the repository
+CODEOWNER. Exploratory work may begin under that boundary, but no
 security-critical core implementation may be marked accepted and no artifact may
 be presented as trusted until the core, engine interface, workflows, and
 deployment manifests have an organizational owner and independent multi-person
