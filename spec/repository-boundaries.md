@@ -2,11 +2,12 @@
 
 Status: Accepted
 
-## Canonical repository
+## Canonical SVM-binding repository
 
 `0xprogrammable/programmable-solana` is the canonical repository for the
-security-critical protocol and the artifacts that must be released against it.
-It is a protocol monorepo, not a container for every Programmable product.
+security-critical SVM binding and the Solana artifacts that must be released
+against it. It is a native binding monorepo, not the canonical repository for
+the portable specification, EVM implementation, or every Programmable product.
 
 The intended structure is introduced incrementally:
 

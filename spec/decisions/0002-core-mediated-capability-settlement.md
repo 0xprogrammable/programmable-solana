@@ -94,22 +94,26 @@ authority boundary.
 
 ## Fees
 
-The Core-owned market record selects the mandatory protocol fee policy. Users
-authorize ceilings. The fee leg has its own supported asset profile, funding
-authority, recipient, and maximum; it is not structurally tied to a traded input
-asset. The Core derives the actual assessment once and records observed debit,
-fee-vault credit, accounted liability, and later claims separately. A
-volume-based component is enforceable only over exact Core-observed legs.
+Production Core V1 fixes `ProtocolAssessmentV1`: five basis points with
+cumulative floor rounding on each exact same-asset
+`PrincipalFundedGrossDebitV1` group. Users authorize ceilings. The additive fee
+uses the basis asset, and the immutable deployment descriptor binds its
+collector. Core derives one assessment per applicable canonical group and
+records observed debit, fee-vault credit, accounted liability, and later claims
+separately. The assessment applies only to exact Core-observed basis legs, not
+opaque or off-Core volume.
 
 The engine and caller cannot replace the policy, select a zero fee, or redirect
 the recipient. Donations do not create fee liability. Claims cannot exceed the
 accounted liability or use a caller-selected destination.
 
-The universal revenue claim is one mandatory fee per successfully committed
-Core envelope. A volume fee is enforceable only on an exact Core-observed basis.
-An opaque program can batch internal actions or expose a separate entrypoint, so
-the Core cannot guarantee a percentage of unknown volume or a fee on every
-semantic action outside it.
+The universal enforceability claim is one mandatory assessment record per
+applicable canonical group in a successfully committed Core envelope. Its
+integer amount may be zero after floor rounding. An envelope with no applicable
+`PrincipalFundedGrossDebitV1` group creates no protocol assessment. An opaque
+program can batch internal actions or expose a separate entrypoint, so Core
+cannot guarantee a percentage of unknown volume or a fee on every semantic
+action outside it.
 
 Provider, creator, engine, referral, spread, reserve growth, auction surplus,
 rebate, and other market economics may be implicit or explicit. Their economic
@@ -152,11 +156,13 @@ An append-only signed deployment manifest identifies legitimate side-by-side
 Core program IDs and binds each to source, artifact, loader state, and its
 predecessor. The manifest is discovery evidence, not settlement authority.
 
-No production Core is made immutable until its accepted interface has hostile
-program tests, compatibility fixtures, realistic runtime measurements,
-reproducible build evidence, and a public deployment manifest. A temporary
-upgrade authority is itself a full trust assumption and cannot be described as
-immutable or owner-compromise-safe.
+No production Core is deployed until its accepted interface has hostile program
+tests, compatibility fixtures, realistic runtime measurements, reproducible
+build evidence, and a public deployment manifest. Once deployed, Production
+Core V1 has no upgrade, configuration, fee, pause, quarantine, sweep, or
+migration authority. A pre-production release candidate with an upgrade
+authority accepts no real user assets and cannot be described as immutable or
+owner-compromise-safe.
 
 ## Deliberately not decided
 
@@ -168,7 +174,10 @@ immutable or owner-compromise-safe.
 - Token-2022 support classes;
 - persistent liquidity-position and exit accounting;
 - loader-specific code pinning;
-- fee amounts, assets, caps, recipients, and bounded update rules; and
+- exact supported fee asset profiles, collector address, shard topology, and
+  public fee codec; the rate, basis, floor rounding, same-asset rule, zero
+  minimum, immutable collector policy, and lack of in-place updates are decided
+  by ADR 0005; and
 - canonical event bytes.
 
 These are separate decisions because each changes a different authority or

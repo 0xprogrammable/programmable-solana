@@ -10,7 +10,8 @@ engine, token, interface, operator, or the Solana network.
 
 - user assets that have not been authorized for the current instruction;
 - assets held in core-custodied market vaults;
-- canonical market identity, fee configuration, and settlement state;
+- canonical market identity, immutable ProtocolAssessmentV1 constitution and
+  collector identity, and settlement state;
 - declared capability boundaries around engine-owned accounts;
 - source, release artifacts, deployment manifests, and authority records; and
 - availability of unrelated markets when one market or engine fails.
@@ -23,8 +24,8 @@ engine, token, interface, operator, or the Solana network.
 | Frontend or client | Can lie, omit data, or construct a hostile transaction | Holds no protocol authority; settlement remains inside signed asset, recipient, amount, fee, and expiry bounds |
 | RPC provider | Can censor or fabricate account data, signatures, slots, and finality claims returned to a client | Cannot alter canonical finalized state or create a validator signature; critical reads need independent comparison or verifiable ledger evidence |
 | Core program | Controls shared validation and core-custodied settlement | Treated as systemic security-critical code with explicit releases and invariants |
-| Core upgrade authority | Can replace the core and defeat code-level controls | Full trust is disclosed until the authority is constrained or removed |
-| Configuration or pause authority | Can invoke only powers implemented for that role | Scope, controller, and every change are public and separately tested |
+| Core upgrade authority | None in every Production Core major | Any non-null authority makes the deployment pre-production and ineligible for real user assets |
+| Core configuration, fee, or pause authority | None in every Production Core major | A different policy requires a new Program ID and opt-in migration |
 | Engine program | Is the economic authorization oracle for participating domains and controls its logic, PDA signers, closure, and state | May economically drain participating domains; receives no protected signer or writable asset account and cannot debit or alter accounted rights in non-participating Core domains; unsolicited raw credits remain possible |
 | Engine upgrade authority | Can change that engine and damage markets that trust it | Engine identity and mutability are visible; risk is not presented as core certification |
 | Future external settlement driver | Could own custom state and affect every account under its program authority | Has no accepted Core interface until its accounts, ambient authorities, code identity, evidence, fees, and liveness boundary are proven |
@@ -34,7 +35,7 @@ engine, token, interface, operator, or the Solana network.
 | Indexer or API | Can omit, delay, mislabel, or fabricate offchain views | Holds no settlement authority; canonical state remains independently discoverable |
 | GitHub or maintainer account | Can alter future source and review evidence | Protected branches, independent reviewers, signed releases, and external artifact verification |
 | Build and release pipeline | Can substitute an artifact or metadata | Reproducible builds, authenticated attestations, and onchain hash verification |
-| Deployment signer | Can deploy or upgrade within its onchain authority | Identity, scope, rotation, recovery, and removal are recorded in public manifests |
+| Deployment signer | Can deploy a candidate but has no post-deployment Production Core authority | Deployment identity and transaction are recorded; the production manifest proves upgrade authority removal |
 | Solana runtime and validator set | Defines execution, consensus, and finality | Base-chain compromise is outside the protocol's ability to contain |
 
 ## Primary threat classes
@@ -86,10 +87,12 @@ otherwise.
 
 ### Administrative compromise
 
-A compromised website or indexer can deceive or censor but cannot settle a
-transaction by itself. A compromised upgrade authority is different: it can
-replace the program and may seize program-controlled assets. Documentation must
-never collapse these threats into the same phrase.
+A compromised website, indexer, repository, company account, or former
+deployment signer can deceive users or publish a hostile future candidate but
+cannot alter any Production Core major. A deployment with a remaining Core upgrade,
+configuration, fee, or pause authority is pre-production and may not accept real
+user assets. Mutable engine, token, or external-program authorities remain
+separate domain-local risks.
 
 ### Supply-chain substitution
 

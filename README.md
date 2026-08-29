@@ -14,13 +14,19 @@
 
 # Programmable Solana
 
-Programmable Solana is an open protocol for programmable liquidity and exchange
-on Solana. It is designed as a DEX protocol, not as a launchpad or a hosted
-application.
+Programmable Solana is the native SVM binding of the open Programmable Protocol
+for programmable liquidity and exchange. It is a DEX protocol, not a launchpad
+or hosted application.
 
 Developers will be able to define market behavior in their own Solana programs
 while the protocol enforces shared settlement rules, fee collection, and market
 isolation.
+
+The portable protocol specification will be implemented separately by native
+bindings. Robinhood Chain is the first planned production deployment through
+the EVM binding; SVM development proceeds in parallel and has its own release
+gates. Bindings share semantics and conformance vectors, not bytecode, state,
+custody, liquidity, fee accounting, addresses, or security evidence.
 
 ## Status
 
@@ -45,13 +51,19 @@ repository is deployed or approved for production use.
   disclosed risk when they share liquidity.
 - **Versioned extensibility.** The engine contract evolves through explicit
   versions and compatibility tests instead of hidden assumptions.
+- **Immutable production majors.** A Core that can accept real assets has no
+  upgrade, configuration, fee, pause, sweep, or migration authority. New majors
+  use new Program IDs and opt-in migration.
+- **Exact protocol assessment.** Production V1 charges five basis points with
+  cumulative floor rounding on `PrincipalFundedGrossDebitV1`; experiments may
+  use other explicitly test-only values.
 - **Honest security boundaries.** The protocol secures its own invariants; it
   does not certify third-party engines, tokens, or interfaces as safe.
 
 ## Repository scope
 
-This is the canonical repository for components that must change and be tested
-together:
+This is the canonical repository for SVM-binding components that must change
+and be tested together:
 
 - the onchain core;
 - the public engine interface;

@@ -2844,6 +2844,8 @@ runtime baseline before recording results:
 - 255 `AccountInfo` positions in one CPI under the active SIMD-0339 gate, which
   does not increase the 64 unique-account lock limit;
 - 1,400,000 compute units when explicitly requested;
+- a 32 KiB default heap frame and canonical 1 KiB-aligned
+  `RequestHeapFrame` values up to the 256 KiB runtime maximum;
 - 946 base compute units per invocation under the same active CPI cost gate,
   before the invoked work and account-data charges;
 - instruction stack height 5, meaning top level plus four nested invocations;
@@ -2902,11 +2904,57 @@ shard contributes two fee controls in addition to its vault settlement endpoint.
 No descriptor, admission, accounting, fee ledger, shard, or vault may be omitted
 from a resource row.
 
-The reduced predeclared combined case uses the routed path, two closed domains,
-two stored intents, two assets, two market-local fee shards, one loader-policy
-account, six settlement capabilities, six moves, four opaque positions, and no
-payload. It has at most four authorization controls: two stored accounts and two
-source-specific spend-authority PDAs. Its exact Core positional count is:
+### AC13 erratum: impossible original resource tuple
+
+The reviewed specification provenance remains commit
+`c1150a0c6be896e8599ff98f85ecba8aa7fe0e22`, tree
+`3fb719a3fa5a1ea225d546ce8a3dd848c11746a2`. That revision predeclared a routed
+case with two closed domains, two stored intents, two active assets, two
+market-local fee shards, six settlement capabilities, six actual Moves, four
+opaque positions, and no payload. The implementation review found that tuple to
+be internally impossible under this document's own protected Move rules.
+
+Each fee shard requires its own Core-reserved fee-vault settlement capability:
+the vault capability names that exact shard index, and an engine Move may not
+reference a Core-reserved fee capability. Six settlement capabilities therefore
+leave only four Move-eligible capabilities:
+
+```text
+6 settlement capabilities - 2 reserved fee-vault capabilities
+  = 4 Move-eligible capabilities
+```
+
+A capability is exclusively a source or destination throughout the canonical
+acyclic Move graph, every `(source, destination)` pair is unique, and both ends
+must carry the same asset profile. For `s` Move-eligible capabilities of one
+asset, the maximum number of distinct Moves is therefore
+`floor(s^2 / 4)`. Two actively moved assets each require at least one source and
+one destination, so the only four-capability distribution is `2 + 2` and the
+actual maximum is:
+
+```text
+floor(2^2 / 4) + floor(2^2 / 4) = 1 + 1 = 2 Moves
+```
+
+The original six-actual-Move claim is retained as a deterministic
+falsification case. It must fail structurally and may not be made green by
+allowing duplicate pairs, cycles, fee-vault Moves, an inactive nominal second
+asset, or a weaker packet threshold. The original 608-byte shape also has no
+payload, while the disposable engine's explicit two-Move plan is 28 bytes; the
+experiment must not add an implicit empty-payload behavior merely to preserve
+the mistaken number.
+
+### Corrected reduced controlled case
+
+The corrected AC13 case uses the routed path, two closed domains, two stored
+intents, two actively moved assets, two active market-local fee shards, one
+loader-policy account, six settlement capabilities, two actual Moves, a
+declared six-Move ceiling, four opaque positions, and a 28-byte explicit engine
+plan. The opaque tail contains two writable engine-owned states, the read-only
+helper program, and its writable helper state, so the measured path is
+`router -> Core -> engine -> opaque helper`. It has exactly four authorization
+controls: two stored accounts and two source-specific spend-authority PDAs. Its
+exact Core positional count remains:
 
 ```text
 6 fixed + 1 loader + 6 domain + 4 authorization + 3 protected profile
@@ -2917,8 +2965,14 @@ Its Core instruction data is exactly:
 
 ```text
 272 fixed + 2*8 domain + 2*8 snapshot + 0*80 inline
-          + 2*8 fee shard + 6*48 settlement + 0 payload = 608 bytes
+          + 2*8 fee shard + 6*48 settlement + 28 payload = 636 bytes
 ```
+
+The explicit plan contains its eight-byte header and two ten-byte Move rows. It
+declares the two engine-state positions and the helper program/state positions;
+there is no fixture-only implicit plan. `maximum_engine_moves == 6` remains a
+ceiling exercised separately, not a false statement that this six-capability
+graph can contain six actual Moves.
 
 These are position and instruction-data facts, not packet proof. The test must
 serialize the actual v0 message and derive unique locks after privilege union,
@@ -2950,6 +3004,56 @@ headroom against every countable active limit and one unused stack level:
 The exact 20% policy is a private falsification threshold, not a public product
 limit. The test records writable-lock counts and the observed invoke cost even
 where they are not the first failing limit.
+
+The controlled frame is 208 KiB (`212,992` bytes), not the 256 KiB runtime
+maximum. Core authenticates exactly one canonical request from the complete
+Instructions sysvar, independent of top-level instruction order, and uses a
+bounded forward allocator with top-only LIFO reclamation. The instrumented
+exact-SBF measurement artifact
+`e9f9cb6fbaf17bba498d02d20791874c8f3eddb5814173442d66441c9151ad1d`
+measured the corrected routed AC13 case at `158,408` peak bytes and `896,777`
+CU. The larger successful four-actor/four-stored-authorization reference case
+was the global measured heap and compute maximum at `169,992` peak bytes and
+`993,389` CU. Therefore:
+
+```text
+5 * 169,992 = 849,960 <= 4 * 212,992 = 851,968
+```
+
+The selected frame leaves `43,000` bytes (`20.19%`) unused at the measured
+peak. It is the smallest whole-KiB request that satisfies the frozen policy:
+the next lower 207 KiB frame would give
+`5 * 169,992 = 849,960 > 4 * 211,968 = 847,872`. The measurement-only peak and
+OOM logs and the peak-tracking allocator word are absent from the final source;
+the diagnostic is not a control-wire field, event, return-data convention, or
+production ABI.
+
+The frozen peak evidence is valid only for the named instrumented source
+artifact. Any later execution-path or allocator change must repeat the temporary
+instrumented build before it may claim the 20% heap margin; runtime success
+alone proves only that the request did not exhaust the frame.
+
+The diagnostics-free strict-SBF artifact
+`0bb50c3ef8c5269728aeb0c7b4f0207c7367cb92b379f7b7f8213312d82bd882`
+then reran the same successful cases with the real 208-KiB request: corrected
+AC13 used `889,384` CU and four-actor batch used `985,957` CU. The complete
+reference matrix and all hostile rollback counterparts remained green without
+heap telemetry in the program.
+
+The corrected AC13 transaction itself serializes to `974` bytes, resolves `38`
+unique locks (`16` writable), loads `26,532` account-data bytes, executes ten
+frames/instructions, reaches stack and CPI-tree depth four, passes `34` Core
+account positions into the routed CPI, passes `1,396` bytes to the engine, and
+uses no return data. Missing and undersized requests, a request after direct
+Core execution, a request after a routed Core CPI, and a short Core account
+prefix retain exact-SBF fail-closed fixtures.
+
+The heap-frame guard necessarily runs after runtime entrypoint deserialization
+and any allocation that deserialization itself performs. A missing or smaller
+mapped frame can therefore terminate with a VM allocation fault before Core can
+return its custom heap-frame error. The claimed property is atomic failure with
+no accepted partial transition, not a guaranteed protocol error code before
+the handler begins.
 
 If the full 12-capability or 12-move private ceiling fails but all required
 reference semantics pass a smaller predeclared matrix with the required
@@ -3006,9 +3110,12 @@ following:
     exact-delegate, and stored paths from cloned authorized state produce the
     same semantic outcome and evidence classes without treating an inherited
     signer from a nested call as intent.
-13. The reduced controlled case retains the declared packet, lock, compute,
-    stack, trace, and return-data headroom under the pinned active runtime; the
-    1,424-byte Cartesian top-level envelope fails as explicitly predicted.
+13. The corrected 34-position, 636-byte, two-actual-Move reduced controlled case
+    retains the declared packet, lock, compute, 208-KiB heap, stack, trace, and
+    return-data headroom under the pinned active runtime; the original
+    34-position, 608-byte, six-actual-Move tuple fails structurally as documented
+    by the AC13 erratum, and the 1,424-byte Cartesian top-level envelope fails as
+    explicitly predicted.
 14. No private byte, seed, discriminator, bound, fixture, program ID, or account
     layout is exported as a compatibility promise.
 
@@ -3092,15 +3199,17 @@ The later experiment result must record:
   authorization, domain, loader, fee, and rollback test inventory;
 - direct and routed packet bytes, static and ALT-loaded keys, unique and writable
   locks, CPI `AccountInfo` positions, compute and invoke cost, maximum stack
-  height, total frames, instruction trace length, CPI data, return data, and
-  loaded-account data for every resource fixture;
+  height, total frames, instruction trace length, CPI data, return data, requested
+  heap frame, measured peak Core bump allocation, and loaded-account data for
+  every resource fixture;
 - zero-, one-, and many-engine-state tail evidence;
 - reference-semantic parity showing one unchanged Core effect path;
 - per-authorization-mode effect and evidence parity;
 - cumulative credit-inequality vectors across partial-fill and terminal
   boundaries;
 - cumulative fee vectors across partition and rounding boundaries;
-- the 1,424-byte expected top-level Cartesian failure, the exact 608-byte
+- the 1,424-byte expected top-level Cartesian failure, the deterministic
+  608-byte/six-actual-Move structural falsification, the exact 636-byte corrected
   reduced-case instruction, and serialized packet proof for every claimed
   accepted resource point;
 - domain-admission, non-participating-domain, alias, callback-forwarding,

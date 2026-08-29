@@ -492,7 +492,9 @@ This spike does not design or establish:
 - an external settlement-driver authority boundary;
 - provider shares, withdrawal, an engine-independent exit, fee claiming, or
   persistent custody;
-- final protocol-fee economics, recipient governance, or update authority;
+- final protocol-fee implementation or collection topology; ADR 0005 later
+  selected the V1 economics and immutable collector rule, but this experiment
+  does not implement or prove them;
 - canonical production event bytes or historical indexing guarantees;
 - deployment, release, upgrade, migration, or immutability policy; or
 - universal product limits for account count, payload size, compute, or return

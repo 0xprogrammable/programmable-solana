@@ -103,19 +103,24 @@ devnet snapshot it was executable with upgrade authority
 Programmable is meaningfully differentiated only if the implementation proves
 all of the following, rather than merely describing them:
 
-- **Canonical enforcement:** every market mutation enters one Core that
-  authenticates and invokes the selected engine; no direct pool, router, or
-  engine entrypoint can bypass its invariants or protocol fee.
+- **Canonical enforcement:** every mutation of Core-owned state or protected
+  Core custody enters one Core that authenticates the engine and enforces its
+  invariants and every applicable protocol assessment. An external engine path
+  is outside that claim and forces the affected execution profile to disclose
+  `PARTIAL` or `NONE`; it cannot be reported as canonical Core volume.
 - **Permissionless engines:** a versioned, public engine ABI and registration
   path without a Programmable allowlist or server on the execution path.
 - **Safe capabilities:** declared accounts/effects, caller authentication,
   compute and CPI limits, reentrancy rules, balanced settlement, failure
   isolation, and deterministic return-delta semantics.
 - **Explicit custody and authority:** vault ownership, pause/withdraw behavior,
-  engine/config mutability, Core upgrade authority, and governance/timelock
-  policy are inspectable. An opaque external program cannot receive general
-  custody merely because it registered as an engine.
-- **Honest fees:** charge only Core-observable, exactly-once committed effects.
+  engine/config mutability, and the verified absence of every Production Core
+  upgrade, config, fee, pause, sweep, or migration authority are inspectable.
+  An opaque external program cannot receive general custody merely because it
+  registered as an engine.
+- **Honest fees:** Production V1 charges exactly five basis points with
+  cumulative floor rounding only on the defined Core-observable,
+  principal-funded gross-debit basis.
   Gross venue fee, volume, TVL, LP value, and creator revenue are not protocol
   revenue, and opaque engine-internal actions cannot support guaranteed
   percentage fees.

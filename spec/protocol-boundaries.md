@@ -9,6 +9,10 @@ state transitions can be defined by external Solana programs called engines.
 The protocol provides common settlement without deciding what every market must
 be.
 
+This document is the native SVM binding. Portable protocol semantics are shared
+with the separate EVM binding; Program IDs, PDAs, accounts, CPI, asset profiles,
+runtime limits, state, liquidity, and release evidence remain Solana-specific.
+
 The design separates three concerns:
 
 1. **Core settlement** owns the shared rules that cannot be delegated safely.
@@ -23,7 +27,8 @@ The core is expected to:
 
 - derive a canonical identity for every market;
 - bind each market to its engine program, interface version, code policy,
-  participating domain references, and fee configuration;
+  participating domain references, separate builder/integrator economics, and
+  the immutable Core V1 protocol constitution;
 - bind each domain to one immutable descriptor covering custody, asset,
   accounting, exit, admission, and protected-capability profiles;
 - authenticate every protected asset account and capability supplied for each
@@ -42,9 +47,9 @@ The core is expected to:
   descriptor;
 - constrain asset movement to the settlement authorized by the current
   transaction;
-- collect protocol fees through Core-native legs that an engine cannot bypass
-  using an authenticated Core policy, while avoiding unverifiable per-trade or
-  percentage claims about opaque custom semantics;
+- collect the immutable five-basis-point `ProtocolAssessmentV1` exactly once on
+  each canonical `PrincipalFundedGrossDebitV1` group inside the Core envelope,
+  while making no percentage claim about opaque or off-Core semantics;
 - reject unsupported interface versions and malformed settlement results;
 - emit canonical events from committed onchain state; and
 - leave all writes atomic when an instruction fails.
@@ -141,10 +146,12 @@ The following choices are deliberately not frozen by this draft:
 - the external settlement-driver authority boundary;
 - stored-intent funding, cancellation, and revocation mechanics;
 - persistent custody, position accounting, and exit profiles;
-- exact protocol-fee assets, caps, recipients, and rounding rules;
+- exact supported fee asset profiles, collector address, shard topology, and
+  fee codec; the five-basis-point rate, objective basis, floor rounding,
+  same-asset rule, zero minimum, and immutable collector policy are decided;
 - event transport and checkpoint encoding; and
-- whether the first core deployment is immutable or governed by a constrained
-  and transparent hardening process.
+- the exact pre-production release-candidate process; every Core that accepts
+  production assets is already required to be adminless and immutable.
 
 Each choice needs an accepted decision record, executable compatibility tests,
 and adversarial tests before implementation is considered stable.

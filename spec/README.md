@@ -1,9 +1,13 @@
 # Protocol specification
 
-This directory records candidate and accepted protocol contracts before they
-are encoded in an onchain program. It also contains explicitly private,
-disposable experiment contracts and their evidence; those records are not
-public interfaces or compatibility promises.
+This directory records the candidate and accepted Solana/SVM binding before it
+is encoded in an onchain program. Portable Market, Domain, Engine, Effect,
+Capability, Intent, fee, evidence, and major-version semantics belong to the
+shared Programmable Protocol specification; this directory owns their
+Solana-native PDA, account, CPI, SPL/Token-2022, SBF, event, and deployment
+realization. It also contains explicitly private, disposable experiment
+contracts and evidence; those records are not public interfaces or
+compatibility promises.
 
 ## Documents
 
@@ -13,8 +17,9 @@ public interfaces or compatibility promises.
   onchain contract, codecs, clients, and permissionless discovery metadata
   without accepting public ABI bytes.
 - [`fee-constitution.md`](fee-constitution.md) defines which fee claims a
-  generic Core can honestly enforce and the accounting gates required before a
-  fee interface is accepted.
+  generic Core can honestly enforce, fixes Production V1 at five basis points
+  on `PrincipalFundedGrossDebitV1`, and defines the accounting gates required
+  before its fee interface is accepted.
 - [`engine-boundary-spike.md`](engine-boundary-spike.md) defines the smallest
   experiment that must succeed before a public engine ABI is designed.
 - [`engine-generated-settlement-spike.md`](engine-generated-settlement-spike.md)

@@ -93,7 +93,7 @@ unknown market effects or that persistent custody remains solvent and escapable.
 
 | Category | Rating | Score | Evidence and next-gate limiter |
 | --- | --- | ---: | --- |
-| Arithmetic | Moderate | 2 | Release overflow checks are enabled and protocol fees use checked `u128` arithmetic with explicit ceiling rounding (`Cargo.toml:29-30`, `programs/core/src/math.rs:5-17`). The routed reference engine uses checked CPMM arithmetic and a 4,096-case independent model (`experiments/routed-callback-auth/test-programs/routed-plan-engine/src/lib.rs:274-327`, `experiments/routed-callback-auth/test-programs/routed-plan-engine/src/lib.rs:845-908`). The next gate still lacks a generic effect-conservation, netting, fee-attribution, and multi-asset rounding model; the current receipt returns only one output scalar (`experiments/routed-callback-auth/crates/routed-callback-probe-wire/src/lib.rs:243-250`). |
+| Arithmetic | Moderate | 2 | Release overflow checks are enabled and the disposable experiment's explicitly non-production 30-BPS fixture uses checked `u128` arithmetic with ceiling rounding (`Cargo.toml:29-30`, `programs/core/src/constants.rs:31-33`, `programs/core/src/math.rs:5-17`). That historical fixture is not the accepted V1 five-BPS cumulative-floor constitution. The routed reference engine uses checked CPMM arithmetic and a 4,096-case independent model (`experiments/routed-callback-auth/test-programs/routed-plan-engine/src/lib.rs:274-327`, `experiments/routed-callback-auth/test-programs/routed-plan-engine/src/lib.rs:845-908`). The next gate still lacks an implemented generic effect-conservation, netting, fee-attribution, and multi-asset rounding model; the current receipt returns only one output scalar (`experiments/routed-callback-auth/crates/routed-callback-probe-wire/src/lib.rs:243-250`). |
 | Auditing | Weak | 1 | Typed authorization and execution events include identities, digests, sequences, and post-accounting (`experiments/routed-callback-auth/programs/routed-callback-core/src/events.rs:27-77`), and a private vulnerability intake exists (`SECURITY.md:9-18`). There is no production event encoding, independent indexer implementation, gap detector, alert policy, runbook, or exercised incident response; event and checkpoint choices remain open (`spec/protocol-boundaries.md:101-120`, `spec/protocol-boundaries.md:133-150`). |
 | Authentication and access control | Moderate | 2 | Spend and callback PDA namespaces are explicitly disjoint (`experiments/routed-callback-auth/programs/routed-callback-core/src/constants.rs:21-30`); authorization must be top-level and binds exact user terms (`experiments/routed-callback-auth/programs/routed-callback-core/src/instructions/authorize_spend_v0.rs:38-74`); opaque signers, fixed-role aliases, Core accounts, and writable token accounts are rejected (`experiments/routed-callback-auth/programs/routed-callback-core/src/validation.rs:43-95`); the callback signer is engine, market, domain, intent, and phase scoped (`experiments/routed-callback-auth/programs/routed-callback-core/src/instructions/execute_callback_authenticated_probe_v0.rs:663-819`). The market binds program and state addresses plus a self-declared numeric revision (`experiments/routed-callback-auth/programs/routed-callback-core/src/state.rs:5-32`), but not loader state, upgrade authority, immutable code, or shared-domain admission. |
 | Complexity management | Weak | 1 | Math, validation, state, events, and wire code are separated, and isolated workspaces prevent an experiment from silently becoming the root interface (`experiments/routed-callback-auth/README.md:16-26`). However the routed execution handler spans `experiments/routed-callback-auth/programs/routed-callback-core/src/instructions/execute_callback_authenticated_probe_v0.rs:161-443` before helpers, that source file is 1,101 lines, and the hand-maintained private wire module is 1,517 lines. Three intentionally copied workspaces now describe overlapping generations of the design, while no small accepted `engine-interface`, client, or compatibility surface exists (`spec/repository-boundaries.md:13-32`, `spec/repository-boundaries.md:38-80`). |
@@ -206,11 +206,11 @@ not post-publication work.
    donation treatment, rounding, underfunding, closure, and account lifecycle
    must be one executable state machine with stateful invariant tests. Aggregate
    vault balances are insufficient.
-3. **Prove failure and upgrade liveness for that exit class.** Exercise a missing,
-   frozen, malicious, and upgraded engine; expired or unavailable dependencies;
-   token extension callbacks; partial migrations; and every authorized Core
-   upgrade state. An upgrade authority is a full custody trust assumption until
-   constrained and monitored (`spec/decisions/0002-core-mediated-capability-settlement.md:145-159`).
+3. **Prove failure and third-party-upgrade liveness for that exit class.**
+   Exercise a missing, frozen, malicious, and upgraded engine; expired or
+   unavailable dependencies; token extension callbacks; and partial opt-in
+   migrations. Separately prove that the Production Core has no upgrade or
+   administrative state (`spec/decisions/0004-production-core-is-adminless.md`).
 4. **Establish release identity.** Reproduce the canonical ELF with at least two
    independent builders, authenticate the release, publish an append-only
    manifest, and verify source commit, artifact hash, IDL hash, loader state,
@@ -218,17 +218,17 @@ not post-publication work.
    `VERSIONING.md:18-25`.
 5. **Establish independent detection and response.** Run an independent indexer
    that authenticates successful Core invocation context and state checkpoints,
-   alerts on gaps and solvency violations, and exercises incident, upgrade,
-   pause-or-no-pause, recovery, and communication runbooks. Monitoring is not an
+   alerts on gaps and solvency violations, and exercises incident, new-major,
+   offchain-route-removal, recovery, and communication runbooks. Monitoring is not an
    exit path, but custody without detection is not ready.
 6. **Obtain independent security review against the final release candidate.**
    Resolve findings against the exact source and artifact, rerun all invariant,
    adversarial, fork, and devnet suites, and invalidate the review if authority,
    loader, accounting, wire, or release inputs change.
-7. **Use a separately authorized, capped deployment progression.** Verify the
-   manifest and onchain program first; then use explicit asset, domain, value,
-   and time caps with rehearsed exits before any broader custody. Repository CI
-   success alone never authorizes this step.
+7. **Use a staged but adminless deployment progression.** Verify the manifest
+   and immutable onchain program first; any asset, domain, value, or time limit
+   must be immutable, domain-local, or user-selected rather than a privileged
+   Core control. Repository CI success alone never authorizes real assets.
 
 ## Next allowed conclusion
 

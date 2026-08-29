@@ -52,9 +52,11 @@ testing, not claims about code that does not yet exist.
    balances authenticated inputs, outputs, protocol fees, and supported token
    behavior under checked arithmetic. Opaque assertions are not covered merely
    because a receipt says they balance.
-8. **Protocol-fee authority** — mandatory assessments come from an authenticated
-   Core-owned policy and cannot be removed, zeroed, duplicated, redirected, or
-   replaced by caller or engine data. No charge exceeds the user's ceiling.
+8. **Protocol-fee authority** — Production Core V1 immutably derives five basis
+   points with cumulative floor rounding from each exact
+   `PrincipalFundedGrossDebitV1` group and binds one collector identity. Caller,
+   engine, router, governance, or any other role cannot remove, zero, duplicate,
+   redirect, replace, or update it. No charge exceeds the user's ceiling.
 9. **Protocol-fee accounting** — only a Core-verified fee-vault credit creates
    accounted liability. Donations do not. Claims cannot exceed liability or use
    a caller-selected destination; liability reduction and transfer are atomic.
@@ -84,12 +86,13 @@ testing, not claims about code that does not yet exist.
     server key, keeper, API, or indexer authorization.
 16. **No generic administrator** — no global authority can make arbitrary calls,
     move user or market assets, rewrite an engine, or silently expand an
-    accepted Core major. Any temporary or scoped authority has only named powers
-    visible in the deployment manifest.
-17. **Upgrade-authority honesty** — a remaining Core, engine, or external-program
-    upgrade authority may defeat the guarantees of domains that trust it. Its
-    controller, constraints, code policy, and removal state are explicit. A
-    unilateral immediate authority cannot be called immutable or trust-minimized.
+    accepted Core major. Every Production Core major has no upgrade,
+    configuration, fee, pause, quarantine, sweep, or migration authority.
+17. **Upgrade-authority honesty** — any remaining Core upgrade authority marks a
+    deployment as pre-production and it accepts no real user assets. Engine or
+    external-program upgrade authorities may still defeat guarantees of domains
+    that trust them; their controller, code policy, and removal state are
+    explicit and never inherited as Core safety.
 
 ## Extensibility
 
@@ -127,9 +130,10 @@ testing, not claims about code that does not yet exist.
 27. **No global writable bottleneck** — ordinary execution does not depend on one
     global registry, fee accumulator, sequence, or authority account. State and
     fees are domain-local or sharded.
-28. **Operator failure separation** — website, API, indexer, DNS, repository, and
-    company-account compromise cannot alter immutable onchain behavior without
-    an independently valid transaction or onchain upgrade authority.
+28. **Operator failure separation** — website, API, indexer, DNS, repository,
+    company-account, and former deployment-account compromise cannot alter a
+    Production Core. Only independently valid user/market transactions can
+    exercise its already immutable rules.
 29. **Exit-class honesty** — every persistent Core-custody domain immutably binds
     either an exact engine-independent Core claim or disclosed engine-liveness
     dependence. Every market sharing that domain inherits the same class. Only
@@ -159,4 +163,6 @@ The staged test plan includes:
 - compute, packet, locked-account, stack, and return-data exhaustion;
 - event-shaped logs from a non-Core invocation or failed transaction;
 - unavailable or changed engines with persistent Core custody; and
-- compromise of each declared administrative or upgrade authority.
+- proof that Production Core exposes no administrative or upgrade authority,
+  plus compromise of every separately disclosed engine, token, asset, or
+  pre-production authority.

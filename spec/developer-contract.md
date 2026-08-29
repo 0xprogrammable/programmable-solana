@@ -4,10 +4,10 @@ Status: Draft
 
 ## Purpose
 
-This document defines the candidate developer-facing boundaries for a
-permissionless Programmable Solana protocol. It separates the small contract
-that may eventually require wire compatibility from generated clients,
-discovery metadata, and product-specific engine semantics.
+This document defines the candidate developer-facing SVM binding for the
+permissionless Programmable Protocol. Portable semantics and golden vectors are
+shared with other native bindings; this contract owns the Solana-specific
+program, PDA, account, CPI, asset-profile, client, and event realization.
 
 This draft does not accept public ABI bytes, account layouts, discriminators,
 resource maxima, package names, deployment addresses, or migration promises.
@@ -88,8 +88,10 @@ Different version axes must remain explicit and independent:
 
 - a Core major is selected by an exact deployed program ID;
 - an engine interface is selected by an exact interface reference;
-- Core-understood capability, asset, settlement, fee, custody, and exit
-  profiles are selected by exact identifiers;
+- Core-understood capability, asset, settlement, custody, and exit profiles are
+  selected by exact identifiers; ProtocolAssessmentV1 is fixed by the Core
+  deployment while separate builder/integrator policies retain their own exact
+  revisions;
 - an engine release is identified by its program ID and accepted code policy,
   not a self-declared numeric revision;
 - a Codama standard version describes the IDL format, not the protocol wire;
@@ -129,8 +131,9 @@ The logical market descriptor must bind at least:
 - the exact engine interface reference;
 - an opaque engine-instance identifier;
 - role-tagged immutable liquidity-domain descriptor references;
-- exact protected capability, asset, settlement, fee, admission, custody, and
-  exit profile references that apply to the market;
+- exact protected capability, asset, settlement, admission, custody, and exit
+  profile references that apply to the market, plus the immutable Core V1
+  protocol constitution and any separate market-fee revision;
 - any other immutable policy reference that changes market authority or
   accounting; and
 - an explicit instance salt when multiple intentionally distinct markets may
@@ -470,6 +473,12 @@ or immutable until all applicable gates below have immutable evidence.
 - Devnet execution, mainnet deployment, public package availability,
   immutability, migration, custody exit, and incident response are reported as
   separate evidence axes. Passing the ABI gate alone proves none of them.
+- Every Production Core release proves `upgrade_authority = None`, absence of a
+  Core configuration, fee, pause, quarantine, sweep, or migration authority,
+  and exact binding of that major's immutable protocol constitution and
+  collector identity. V1 specifically proves the complete five-basis-point
+  constitution. A candidate with any remaining Core authority is pre-production
+  and accepts no real user assets.
 
 ## Current repository gaps
 

@@ -1,7 +1,9 @@
 # Versioning
 
-Programmable Solana versions independently released protocol components instead
-of treating the repository as one application version.
+Programmable Solana versions independently released SVM-binding components
+instead of treating the repository as one application version. Portable
+protocol major semantics and golden vectors are shared with other native
+bindings; Solana artifacts and deployments are versioned independently.
 
 Planned tag families are:
 
@@ -18,6 +20,13 @@ is required.
 An onchain release is not identified by a tag alone. Its append-only deployment
 manifest must bind the cluster, program ID, source commit, artifact hash, IDL
 hash, toolchain, deployment transaction and slot, and upgrade authority state.
+
+For every Core that can accept production assets, that manifest must prove
+`upgrade_authority = None`, no replaceable program data or administrative Core
+path, and the immutable protocol-constitution and collector identity selected
+by that major. The V1 manifest specifically binds every
+`ProtocolAssessmentV1` constant. A release candidate with a remaining authority
+is pre-production, accepts no real user assets, and is not a Production Core.
 
 Before the first deployment, the release process must define authenticated tags
 or attestations, authorized signer rotation and recovery, and independent

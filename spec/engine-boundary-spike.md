@@ -190,18 +190,20 @@ This staging limits the experiment, not what the eventual protocol may express.
 
 ## Authoritative protocol fee
 
-There is one fee truth:
+ADR 0005 now defines the Production V1 fee truth:
 
-1. a Core-owned market record binds the protocol fee policy;
+1. the immutable Core deployment descriptor binds `ProtocolAssessmentV1` and
+   its collector;
 2. the user authorizes only a ceiling;
-3. the Core derives the mandatory assessment once;
+3. Core derives one mandatory assessment record per applicable canonical
+   `PrincipalFundedGrossDebitV1` group; floor rounding may make its amount zero;
 4. the Core transfers it through the supported asset profile; and
 5. the event reports the observed result.
 
 The engine and caller cannot supply a zero policy, alternate recipient, or
 second fee schedule.
 
-For the direct single-user spike, a protocol assessment binds:
+The disposable direct single-user spike binds broader measurement fields:
 
 - the exact Core-native asset profile and basis leg;
 - gross or net basis and whether the leg has already been assessed;
@@ -211,14 +213,19 @@ For the direct single-user spike, a protocol assessment binds:
 - policy-derived recipient shard; and
 - observed source debit and fee-vault credit.
 
+Those fields are not Production V1 economics. The exact five-basis-point basis,
+grouping, cumulative floor formula, immutable collector, and honest enforcement
+boundary are defined by ADR 0005 and `fee-constitution.md`.
+
 Only a Core-verified fee-vault credit increases accounted protocol-fee
 liability. Donations do not. Claims cannot exceed that liability, use a
 caller-selected recipient, or reduce liability without the atomic transfer.
 
-The universal business claim is one mandatory fee per successfully committed
-Core envelope. An opaque program can batch several semantic actions or expose a
-separate entrypoint, so the Core cannot honestly claim a fee per unknowable
-internal trade.
+The universal enforceability claim is one mandatory assessment record per
+applicable canonical group in a successfully committed Core envelope. An opaque
+program can batch several semantic actions or expose a separate entrypoint, so
+Core cannot honestly claim a fee per unknowable internal trade or off-Core
+activity.
 
 Market-defined provider economics may be explicit transfers, implicit reserve
 growth, position fee growth, spread, auction surplus, funding, rebates, or other
@@ -311,7 +318,10 @@ of the first topology spike.
 - Token-2022 support profiles and callback alias rules;
 - loader-specific mutable, pinned, and immutable code identity;
 - persistent custody, position accounting, and exit profiles;
-- fee rates, assets, caps, recipients, and any bounded update mechanism; and
+- exact supported fee asset profiles, collector address, shard topology, and
+  public codec; ADR 0005 has already fixed the V1 rate, objective basis,
+  cumulative floor rule, same-asset funding, zero minimum, immutable collector
+  policy, and absence of in-place updates; and
 - canonical event transport and compatibility bytes.
 
 Each deferred capability gets its own decision and hostile test. None is solved
